@@ -161,7 +161,7 @@ export default function ChooseProfilePicture() {
                                     source={
                                         selectedImage
                                             ? { uri: selectedImage }
-                                            : require("@/assets/images/lzj.jpeg")
+                                            : require("@/assets/images/cloud-upload-outline.jpg")
                                     }
                                     style={{ width: 300, height: 300, borderRadius: 150, borderColor: theme.text, borderWidth: 2 }}
                                 />

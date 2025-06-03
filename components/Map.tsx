@@ -55,7 +55,7 @@ const Map = () => {
 const styles = StyleSheet.create({
     map: {
         width: '100%',
-        height: '50%',
+        height: '80%',
         borderRadius: 16,
         overflow: 'hidden',
     },

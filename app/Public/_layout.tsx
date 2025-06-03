@@ -8,6 +8,10 @@ import { auth, db } from "@/FirebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import SideMenu from '@/components/SideMenu';
 import { Portal } from 'react-native-paper';
+import MedicalRecordsIcon from "@/components/MedicalRecordsIcon"
+import LocationIcon from "@/components/LocationIcon";
+
+
 
 export default function Layout() {
     const [menuVisible, setMenuVisible] = useState(false);
@@ -85,10 +89,14 @@ export default function Layout() {
             screenOptions={{
                 headerTitle: '',
                 headerStyle: {
+                    backgroundColor: theme.background,
                     height: 100, // Adjust the height of the header here
+                    borderBottomWidth: 0, // ✅ removes border
+                    shadowColor: 'transparent', // ✅ removes shadow on iOS
+                    elevation: 0, // ✅ removes shadow on Android
                 },
-                headerTransparent: true,
-                headerRight: () => <HeaderRight />,
+                headerTransparent: false,
+                // headerRight: () => <HeaderRight />,
             }}
         >
             <Tabs.Screen
@@ -106,19 +114,55 @@ export default function Layout() {
                 options={{
                     title: "Map",
                     tabBarIcon: ({ color, size }) => (
+                        <LocationIcon size={size} color={color} />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="MedicalRecords"
+                options={{
+                    title: "Records",
+                    tabBarIcon: ({ color, size }) => (
+                        <MedicalRecordsIcon color={color} size={size}/>
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="emergencyReport"
+                options={{
+                    title: "Report",
+                    tabBarIcon: ({ color, size }) => (
                         <Ionicons name="map-outline" size={size} color={color} />
                     ),
                 }}
             />
+
             <Tabs.Screen
-                name="new-screen"
+                name="ProfilePage"
                 options={{
-                    title: "Tung",
+                    headerTransparent: false,
+                    title: "Profile",
                     tabBarIcon: ({ color, size }) => (
+                        selectedImage ? (
+                            <Image
+                                source={{ uri: selectedImage }}
+                                style={{
+                                    width: size,
+                                    height: size,
+                                    borderRadius: size / 2, // Makes it circular
+                                    borderWidth: 0,
+                                    borderColor: color, // Optional: add border matching tabBar icon color
+                                }}
+                            />
+                        ) : (
                         <Ionicons name="person-outline" size={size} color={color} />
-                    ),
-                }}
-            />
+                    )
+                ),
+            }}
+                />
+
         </Tabs>
     );
 }
