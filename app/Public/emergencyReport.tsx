@@ -1,70 +1,178 @@
-import { View, Text, Pressable, Button, Platform, PermissionsAndroid, NativeModules, Alert } from "react-native";
+import { View, Text, Pressable, Button, Platform, PermissionsAndroid, Alert } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, runTransaction } from "firebase/firestore";
 import { auth, db } from "../../FirebaseConfig";
 import {Region} from "react-native-maps";
 import * as Location from "expo-location"; // use your config here
+import Vosk from 'react-native-vosk';
+import * as FileSystem from 'expo-file-system';
+import * as Audio from 'expo-av';
 
 export default function emergencyReport() {
     const { theme } = useTheme();
-    const { VoskModule } = NativeModules;
     const [user, setUser] = useState(null);
     const [userId, setUserId] = useState("");
     const [text, setText] = useState('');
     const [isListening, setIsListening] = useState(false);
+    const [recognizer, setRecognizer] = useState(null);
+    const [transcript, setTranscript] = useState('');
+
+    // Initialize Vosk
+    useEffect(() => {
+        const initVosk = async () => {
+            try {
+                await Vosk.initModel('model');
+                const newRecognizer = await Vosk.createRecognizer();
+                setRecognizer(newRecognizer);
+                console.log('Vosk initialized successfully');
+            } catch (error) {
+                console.error('Error initializing Vosk:', error);
+            }
+        };
+
+        initVosk();
+
+        // Cleanup
+        return () => {
+            if (recognizer) {
+                Vosk.destroyRecognizer(recognizer);
+            }
+        };
+    }, []);
 
     //Request mic permission for listening
     const requestMicPermission = async () => {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          console.warn('Microphone permission denied');
-          return false;
+      try {
+        if (Platform.OS === 'android') {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            {
+              title: "Microphone Permission",
+              message: "App needs access to your microphone for voice recognition",
+              buttonNeutral: "Ask Me Later",
+              buttonNegative: "Cancel",
+              buttonPositive: "OK"
+            }
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            Alert.alert(
+              "Permission Required",
+              "Microphone permission is required for voice recognition",
+              [{ text: "OK" }]
+            );
+            return false;
+          }
+        } else if (Platform.OS === 'ios') {
+          const { status } = await Audio.requestPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert(
+              "Permission Required",
+              "Microphone permission is required for voice recognition",
+              [{ text: "OK" }]
+            );
+            return false;
+          }
         }
         return true;
+      } catch (error) {
+        console.error('Error requesting microphone permission:', error);
+        Alert.alert(
+          "Error",
+          "Failed to request microphone permission",
+          [{ text: "OK" }]
+        );
+        return false;
       }
-      return true;
     };
 
     const startVoiceRecognition = async () => {
       const hasPermission = await requestMicPermission();
-      if (!hasPermission) return;
+      if (!hasPermission) {
+        console.log('Microphone permission not granted');
+        return;
+      }
 
-      if (VoskModule && VoskModule.startListening) {
-        try {
-          VoskModule.startListening();
-          setIsListening(true);
-          console.log('Started listening');
-        } catch (error) {
-          console.error('Error starting voice recognition:', error);
-        }
-      } else {
-        console.warn('VoskModule is not available');
+      if (!recognizer) {
+        console.log('Recognizer not initialized');
+        return;
+      }
+
+      try {
+        await Vosk.startListening(recognizer);
+        setIsListening(true);
+        console.log('Started listening');
+      } catch (error) {
+        console.error('Error starting voice recognition:', error);
+        Alert.alert(
+          "Error",
+          "Failed to start voice recognition",
+          [{ text: "OK" }]
+        );
       }
     };
 
-    const stopVoiceRecognition = () => {
-      if (VoskModule?.stopListening) {
-        try {
-          VoskModule.stopListening();
-          setIsListening(false);
-          console.log('Stopped listening');
-        } catch (error) {
-          console.error('Error stopping voice recognition:', error);
+    const stopVoiceRecognition = async () => {
+      if (!recognizer) return;
+
+      try {
+        const result = await Vosk.stopListening(recognizer);
+        setIsListening(false);
+        console.log('Stopped listening');
+        
+        // Parse the result and update transcript
+        if (result) {
+          const parsedResult = JSON.parse(String(result));
+          const newTranscript = parsedResult.text || '';
+          setTranscript((prev: string) => prev + ' ' + newTranscript);
+          await saveTranscript(newTranscript);
         }
+      } catch (error) {
+        console.error('Error stopping voice recognition:', error);
+      }
+    };
+
+    const saveTranscript = async (text: string) => {
+      try {
+        const fileName = 'transcript.txt';
+        const filePath = `${FileSystem.documentDirectory}${fileName}`;
+        
+        // Read existing content if file exists
+        let existingContent = '';
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(filePath);
+          if (fileInfo.exists) {
+            existingContent = await FileSystem.readAsStringAsync(filePath);
+          }
+        } catch (error) {
+          console.log('No existing transcript file');
+        }
+
+        // new content
+        const newContent = existingContent ? `${existingContent}\n${text}` : text;
+        await FileSystem.writeAsStringAsync(filePath, newContent);
+        console.log('Transcript saved successfully');
+      } catch (error) {
+        console.error('Error saving transcript:', error);
       }
     };
 
     const showTranscript = async () => {
       try {
-        const content = await VoskModule.getTranscript();
-        Alert.alert("Transcript", content);
-      } catch (err) {
-        console.warn("Failed to read transcript:", err);
+        const fileName = 'transcript.txt';
+        const filePath = `${FileSystem.documentDirectory}${fileName}`;
+        
+        const fileInfo = await FileSystem.getInfoAsync(filePath);
+        if (fileInfo.exists) {
+          const content = await FileSystem.readAsStringAsync(filePath);
+          Alert.alert("Transcript", content);
+        } else {
+          Alert.alert("Transcript", "No transcript available");
+        }
+      } catch (error) {
+        console.error('Error reading transcript:', error);
+        Alert.alert("Error", "Failed to read transcript");
       }
     };
 
