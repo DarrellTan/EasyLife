@@ -15,6 +15,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import {Region} from "react-native-maps";
 import * as Location from "expo-location"; 
 import { Audio } from 'expo-av';
+import { classify } from '@/ml/svmClassifier';
 
 const eventEmitter = new NativeEventEmitter(NativeModules.Vosk);
 
@@ -110,7 +111,7 @@ export default function Home() {
     const [isListening, setIsListening] = useState(false);
     const [isModelLoaded, setIsModelLoaded] = useState(false);
 
-    // Set up Vosk event listeners
+    // Set up Vosk event listeners + svm clasifier
     useEffect(() => {
         // const resultSubscription = eventEmitter.addListener('onResult', (result: any) => {
         //     try {
@@ -136,6 +137,14 @@ export default function Home() {
             console.log('Vosk final result:', result);
             setTranscription(result);
             console.log('Transcription:', result);
+            try {
+                const predictionResult = await classify(result);    //takes in finalResult and make classification
+                console.log('SVM Prediction:', predictionResult);
+                setPrediction(predictionResult);
+            } catch (error) {
+                console.error('Error classifying transcription:', error);
+                setPrediction("unknown");
+            }
         });
 
         const timeoutSubscription = eventEmitter.addListener('onTimeout', () => {

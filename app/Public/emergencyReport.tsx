@@ -13,6 +13,10 @@ import { Audio } from 'expo-av';
 
 import { DeviceEventEmitter } from 'react-native';
 
+
+
+
+
 // type VoskRecognizer = {
 //     startListening: () => Promise<void>;
 //     stopListening: () => Promise<void>;
@@ -38,6 +42,10 @@ export default function emergencyReport() {
     const [prediction, setPrediction] = useState('');
     const [transcription, setTranscription] = useState('');
     const [region, setRegion] = useState<Region | null>(null);
+
+    
+    
+    
     
     // // Initialize Vosk model
     // useEffect(() => {
