@@ -1,6 +1,6 @@
 import * as ort from 'onnxruntime-react-native';
-import tfidfConfig from '@/app/assets/ml/tfidf_config.json';
-import labelMap from '@/app/assets/ml/label_classes.json';
+import tfidfConfig from '@/app/assets/ml/tfidf_config_multilabel.json';
+import labelMap from '@/app/assets/ml/label_classes_multilabel.json';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 
@@ -15,9 +15,9 @@ export async function loadModel() {
   }
   console.log("Preparing to load ONNX model from assets...");
 
-  const modelAsset = Asset.fromModule(require('@/app/assets/ml/svm_model_1.0.onnx'));
+  const modelAsset = Asset.fromModule(require('@/app/assets/ml/svm_model_multilabel.onnx'));
   await modelAsset.downloadAsync();
-  const modelPath = `${FileSystem.cacheDirectory}svm_model_1.0.onnx`;
+  const modelPath = `${FileSystem.cacheDirectory}svm_model_multilabel.onnx`;
   await FileSystem.copyAsync({ from: modelAsset.localUri!, to: modelPath });
 
   console.log("Model copied to cache path:", modelPath);
@@ -36,7 +36,7 @@ export function unloadModel() {
 }
 
 
-//let vocabIndexMap: { [token: string]: number } | null = null;
+
 
 // -- Converts input text into a TF-IDF vector --
 function transform(text: string): number[] {
@@ -74,9 +74,9 @@ function transform(text: string): number[] {
 }
 
 // -- Main classification function --
-export async function classify(text: string): Promise<string> {
+export async function classify(text: string): Promise<string[]> {
   try {
-    if (!text || text.trim() === '') return "unknown";
+    if (!text || text.trim() === '') return ["unknown"];
 
     console.log("Classify called with input:", text);
     
@@ -90,20 +90,24 @@ export async function classify(text: string): Promise<string> {
     const results = await session.run({ input: tensor });
 
     const outputName = session.outputNames[0];
-    const outputTensor = results[outputName].data;
-
+    const outputTensor = results[outputName].data as number[];
     console.log("Model inference complete, raw output:", outputTensor); 
 
-    const predictedIndex = outputTensor[0];
-    console.log("Predicted index:", predictedIndex);
-    const predictionLabel = labelMap[predictedIndex] || "unknown";
+    const predictedLabels: string[] = [];
+    outputTensor.forEach((value: number, index: number) => {
+      if (value === 1) {
+        const rawLabel = labelMap[index] || `unknown_${index}`;
+        const cleaned = rawLabel.replace(/[\[\]'"\s]/g, '');
+        predictedLabels.push(cleaned);
+      }
+    });
   
-    console.log("Final predicted label:", predictionLabel);
-    return predictionLabel;
+    console.log("Final predicted label:", predictedLabel);
+    return predictedLabels.length > 0 ? predictedLabels : ["unknown"];
     
   } catch (error) {
     console.error("SVM classification failed:", error);
-    return "unknown";
+    return ["unknown"];
   }
 }
 
