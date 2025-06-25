@@ -128,7 +128,7 @@ export default function Home() {
         return true;
     };
 
-    const [prediction, setPrediction] = useState('');
+    const [prediction, setPrediction] = useState<string[]>([]);
     const [transcription, setTranscription] = useState('');
     const [isListening, setIsListening] = useState(false);
     const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -187,7 +187,7 @@ export default function Home() {
                 setPrediction(predicted);
             } catch (err) {
                 console.error('Classification error:', err);
-                setPrediction("unknown");
+                setPrediction(["unknown"]);
             } finally {
                 isClassifying = false;
             }
@@ -454,7 +454,7 @@ export default function Home() {
                         longitude: region.longitude,
                     },
                 reportFor: reportFor,
-                classification: [prediction || "unknown"], // autio fill in the prediction
+                classification: prediction.length > 0 ? prediction : ["unknown"], // autio fill in the prediction
                 transcribedText: transcription || "N/A",  // autio fill in the transcription
                 status: "Active",
             });
