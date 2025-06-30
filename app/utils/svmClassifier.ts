@@ -102,7 +102,7 @@ export async function classify(text: string): Promise<string[]> {
       }
     });
   
-    console.log("Final predicted label:", predictedLabel);
+    console.log("Final predicted label:", predictedLabels);
     return predictedLabels.length > 0 ? predictedLabels : ["unknown"];
     
   } catch (error) {
