@@ -23,7 +23,7 @@ export default function DetailedReport() {
     const [latitude, setLatitude] = useState();
     const [longitude, setLongitude] = useState();
     const [location, setLocation] = useState();
-    const [operatorProfile, setOperatorProfile] = useState(null);
+    const [userProfile, setUserProfile] = useState(null);
     const [operatorName, setOperatorName] = useState("N/A");
 
     const [loading, setLoading] = useState(true);
@@ -133,20 +133,20 @@ export default function DetailedReport() {
                 setEmergencyService(reportData.assignedEmergencyService);
 
                 // 🔽 Fetch operator profile after setting operatorId
-                if (reportData.assignedOperator) {
-                    const operatorRef = doc(db, "operators", reportData.assignedOperator);
-                    const operatorSnap = await getDoc(operatorRef);
-                    if (operatorSnap.exists()) {
-                        const operatorData = operatorSnap.data();
-                        setOperatorProfile(operatorData);
+                if (reportData.userId) {
+                    const userRef = doc(db, "users", reportData.userId);
+                    const userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        const userData = userSnap.data();
+                        setUserProfile(userData);
 
-                        if (operatorData.profilePicUrl) {
-                            setSelectedImage(operatorData.profilePicUrl);
+                        if (userData.profilePicUrl) {
+                            setSelectedImage(userData.profilePicUrl);
                         }
 
-                        console.log(operatorData);
+                        console.log(userData);
                     } else {
-                        console.warn("Assigned operator not found");
+                        console.warn("User not found");
                     }
                 }
             }
@@ -225,7 +225,7 @@ export default function DetailedReport() {
                     <View className="self-center mt-6" style={{ width: "90%", height: 1, backgroundColor: '#888' }} />
 
                     <View className="self-center mt-4" style={{ width: "90%"}}>
-                        <Text className="font-bold text-2xl text-white">Emergency Operator</Text>
+                        <Text className="font-bold text-2xl text-white">Caller</Text>
 
                        <View className="flex-row items-center mt-4">
                            <Image
@@ -238,8 +238,7 @@ export default function DetailedReport() {
                            />
 
                            <View className="ml-4 items-start">
-                               <Text className="font-bold text-2xl text-white">{operatorProfile?.fullName ?? "N/A"}</Text>
-                               <Text className="font-bold text-l text-white mt-1">{emergencyService ?? "N/A"}</Text>
+                               <Text className="font-bold text-2xl text-white">{userProfile?.fullName ?? "N/A"}</Text>
                            </View>
                        </View>
                     </View>
