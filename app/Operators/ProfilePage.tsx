@@ -1,4 +1,4 @@
-import { SafeAreaView , ScrollView ,View, Text, TextInput, Pressable, Image, TouchableOpacity , Modal} from "react-native";
+import { SafeAreaView , ScrollView ,View, Text, TextInput, Pressable, Image, TouchableOpacity , Modal, Alert} from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -177,6 +177,7 @@ export default function ProfilePage() {
             }, { merge: true });
 
             console.log("Successfully uploaded");
+            Alert.alert("Success", "Profile Information Saved");
         } catch (error) {
             console.error("Error updating gender:", error);
         }

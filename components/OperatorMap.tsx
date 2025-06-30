@@ -66,6 +66,8 @@ const Map = () => {
             where('status', '==', 'Active')
         );
 
+        console.log("Query active");
+
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const hasReport = !querySnapshot.empty;
 

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { doc, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/FirebaseConfig";
+import { auth, db } from "@/FirebaseConfig";
 
 export default function Login() {
     const router = useRouter();
@@ -11,8 +12,24 @@ export default function Login() {
 
     const handleLogin = async () => {
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            router.replace("/Public/home");
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const uid = userCredential.user.uid;
+
+            const userDocRef = doc(db, "users", uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                router.replace("/Public/home");
+            } else {
+                const operatorDocRef = doc(db, "operators", uid);
+                const operatorDocSnap = await getDoc(operatorDocRef);
+
+                if (operatorDocSnap.exists()) {
+                    router.replace("/Operators/home");
+                } else {
+                    Alert.alert("Login failed", "No user role found for this account.");
+                }
+            }
         } catch (error: any) {
             Alert.alert("Login failed", error.message);
         }
