@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform, Linking, TouchableOpacity, View, Text } from 'react-native';
 import MapView, { PROVIDER_DEFAULT, Region, Polyline } from 'react-native-maps';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
 import { auth, db, rtdb } from '@/FirebaseConfig'; // Ensure realtimeDb is exported from FirebaseConfig
@@ -9,6 +9,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import polyline from '@mapbox/polyline';
 import CarMarker from './CarMarker';
 import { ref, onValue } from 'firebase/database';
+import { Ionicons } from '@expo/vector-icons';
+
 
 const Map = () => {
     const [userId, setUserId] = useState<string | null>(null);
@@ -138,38 +140,92 @@ const Map = () => {
         }
     };
 
+    const openNavigation = (latitude: number, longitude: number) => {
+        const latLng = `${latitude},${longitude}`;
+        const url = Platform.select({
+            ios: `http://maps.apple.com/?daddr=${latLng}`,
+            android: `geo:${latLng}?q=${latLng}`,
+        });
+
+        Linking.canOpenURL(url)
+            .then((supported) => {
+                if (supported) {
+                    return Linking.openURL(url);
+                } else {
+                    console.warn('Cannot open navigation app');
+                }
+            })
+            .catch((err) => console.error('Error opening navigation:', err));
+    };
+
     if (!region) {
         return null; // or a loading spinner
     }
 
     return (
-        <MapView
-            provider={PROVIDER_DEFAULT}
-            style={styles.map}
-            initialRegion={region}
-            showsUserLocation
-        >
-            {carPosition && (
-                <CarMarker
-                    latitude={carPosition.latitude}
-                    longitude={carPosition.longitude}
+            <MapView
+                provider={PROVIDER_DEFAULT}
+                style={styles.map}
+                initialRegion={region}
+                showsUserLocation
+            >
+                {carPosition && (
+                    <CarMarker
+                        latitude={carPosition.latitude}
+                        longitude={carPosition.longitude}
+                    />
+                )}
+                <Polyline
+                    coordinates={routeCoords}
+                    strokeColor="red"
+                    strokeWidth={4}
                 />
-            )}
-            <Polyline
-                coordinates={routeCoords}
-                strokeColor="red"
-                strokeWidth={4}
-            />
-        </MapView>
+
+                {carPosition && (
+                    <TouchableOpacity
+                        style={styles.navigateButton}
+                        onPress={() => openNavigation(carPosition.latitude, carPosition.longitude)}
+                    >
+                        <Ionicons name="navigate-circle-outline" size={24} color="white" />
+                        <Text style={styles.navigateText}> Navigate to Operator</Text>
+                    </TouchableOpacity>
+                )}
+            </MapView>
     );
 };
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+    },
     map: {
         width: '100%',
         height: '80%',
         borderRadius: 16,
         overflow: 'hidden',
+    },
+    navigateButton: {
+        position: 'absolute',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#007AFF',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        marginTop: 16,
+        borderRadius: 10,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+    },
+    navigateText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 
