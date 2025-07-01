@@ -1,9 +1,12 @@
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { router } from "expo-router"
 import { useEffect, useState } from "react";
 import { auth, db } from "@/FirebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useNavigation } from '@react-navigation/native';
+
 
 export default function EditMedicalInfo({ onClose }: { onClose: () => void }) {
     const { theme } = useTheme();
@@ -13,6 +16,8 @@ export default function EditMedicalInfo({ onClose }: { onClose: () => void }) {
     const [currentMedications, setCurrentMedications] = useState<string[]>([""]);
     const [allergies, setAllergies] = useState<string[]>([""]);
     const [bloodType, setBloodType] = useState<string>("");
+    const navigation = useNavigation();
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -47,6 +52,10 @@ export default function EditMedicalInfo({ onClose }: { onClose: () => void }) {
             bloodType,
         });
 
+        navigation.reset({
+            index: 0,
+            routes: [{ name: "index" }],
+        });
         onClose(); // go back to previous screen
     };
 

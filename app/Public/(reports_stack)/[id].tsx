@@ -8,6 +8,8 @@ import { ref, uploadBytesResumable, getDownloadURL, uploadBytes } from 'firebase
 import LocationkIcon from "@/components/LocationIcon";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useActiveReportContext } from '@/context/ActiveReportContext';
+import { useNavigation } from '@react-navigation/native';
+
 
 
 
@@ -16,6 +18,8 @@ export default function DetailedReport() {
     const { theme } = useTheme();
     const { id } = useLocalSearchParams();
     const [activeReportId, setActiveReport] = useActiveReportContext();
+    const navigation = useNavigation();
+
 
     // useStates for Fetching information
     const [status, setStatus] = useState();
@@ -106,13 +110,19 @@ export default function DetailedReport() {
     const cancelReport = async (id: string) => {
         setReportComplete(id);
         setActiveReport(null);
-        router.replace("/Public/(reports_stack)");
+        navigation.reset({
+            index: 0,
+            routes: [{ name: "index" }],
+        });
     }
 
     const completeReport = async (id: string) => {
         setReportComplete(id);
         setActiveReport(null);
-        router.replace("/Public/(reports_stack)");
+        navigation.reset({
+            index: 0,
+            routes: [{ name: "index" }],
+        });
     }
 
     const fetchReports = async (uid: string) => {
