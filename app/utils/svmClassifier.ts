@@ -86,9 +86,10 @@ export async function classify(text: string): Promise<string[]> {
     
     const inputVector = Float32Array.from(transform(text));
     const tensor = new ort.Tensor('float32', inputVector, [1, inputVector.length]);
-    
-    const results = await session.run({ float_input: tensor });
 
+    const inputName = session.inputNames[0];  // <-- get the actual input name
+    const results = await session.run({ [inputName]: tensor });
+    
     const outputName = session.outputNames[0];
     const outputTensor = results[outputName].data as number[];
     console.log("Model inference complete, raw output:", outputTensor); 
