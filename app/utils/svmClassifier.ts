@@ -1,6 +1,6 @@
 import * as ort from 'onnxruntime-react-native';
-import tfidfConfig from '@/app/assets/ml/tfidf_config_multilabel.json';
-import labelMap from '@/app/assets/ml/label_classes_multilabel.json';
+import tfidfConfig from '@/app/assets/ml/tfidf_config_multilabel_1.0.json';
+import labelMap from '@/app/assets/ml/label_classes_multilabel_1.0.json';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 
@@ -15,9 +15,9 @@ export async function loadModel() {
   }
   console.log("Preparing to load ONNX model from assets...");
 
-  const modelAsset = Asset.fromModule(require('@/app/assets/ml/svm_model_multilabel.onnx'));
+  const modelAsset = Asset.fromModule(require('@/app/assets/ml/svm_model_multilabel_1.0.onnx'));
   await modelAsset.downloadAsync();
-  const modelPath = `${FileSystem.cacheDirectory}svm_model_multilabel.onnx`;
+  const modelPath = `${FileSystem.cacheDirectory}svm_model_multilabel_1.0.onnx`;
   await FileSystem.copyAsync({ from: modelAsset.localUri!, to: modelPath });
 
   console.log("Model copied to cache path:", modelPath);
