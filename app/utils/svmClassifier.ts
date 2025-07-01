@@ -48,30 +48,37 @@ function transform(text: string): number[] {
     throw new Error("TF-IDF config mismatch: vocab and idf length differ.");
   }
 
-  // Cache the vocab-to-index map
-  //if (!vocabIndexMap) {
-    //vocabIndexMap = {};
-    //vocab.forEach((word, i) => {
-      //vocabIndexMap![word] = i;
-    //});
-  //}
+  console.log("Starting TF-IDF transform...");
+  console.log("Input text:", text);
 
   // Create vocab-index map
   const vocabIndexMap: { [token: string]: number } = {};
   vocab.forEach((word, i) => {
     vocabIndexMap[word] = i;
   }); 
-  
+
+  // === Tokenize text ===
   const tokens = text.toLowerCase().match(/\b\w+\b/g) || [];
+  console.log("Tokens:", tokens);
   const vector = Array(vocab.length).fill(0);
+  let matched = 0;
+
   tokens.forEach(token => {
     const index = vocabIndexMap[token];
     if (typeof index === 'number') {
       vector[index] += idf[index];
+      console.log(`Matched token "${token}" → index ${index}, IDF ${idf[index]}`);
+      matched++;
+    } else {
+      console.warn(`Unmatched token: "${token}"`);
     }
   });
+
+  console.log(`Total tokens: ${tokens.length}, matched: ${matched}`);
+  console.log("TF-IDF vector preview (first 10):", vector.slice(0, 10));
   return vector;
 }
+
 
 // -- Main classification function --
 export async function classify(text: string): Promise<string[]> {
@@ -84,6 +91,13 @@ export async function classify(text: string): Promise<string[]> {
     console.log("ONNX model loaded, proceeding to inference...");
     
     const inputVector = Float32Array.from(transform(text));
+
+    // Add this check [possible cause?]
+    if (inputVector.every(val => val === 0)) {
+      console.warn("Input vector is all zeros. Possibly unknown words.");
+      return ["unknown"];
+    }
+    
     console.log("TF-IDF vector length:", inputVector.length);
     console.log("Sample TF-IDF values:", inputVector.slice(0, 10)); // first 10 values
     
