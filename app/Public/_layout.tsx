@@ -243,9 +243,11 @@ export default function Layout() {
             />
 
             <Tabs.Screen
-                name="MedicalRecords"
+                name="(records_stack)"
                 options={{
-                    title: "Records",
+                    title: "Reports",
+                    headerTransparent: false,
+                    headerShown: false,
                     tabBarIcon: ({ color, size }) => (
                         <MedicalRecordsIcon color={color} size={size}/>
                     ),

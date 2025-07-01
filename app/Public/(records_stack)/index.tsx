@@ -5,8 +5,9 @@ import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc} from "firebase/firestore";
 import { auth, db } from "@/FirebaseConfig";
 import PlusIcon from "@/components/PlusIcon";
+import {router} from "expo-router";
 
-export default function MedicalRecords() {
+export default function Index() {
     const { theme } = useTheme();
     const [userId, setUserId] = useState<string | null>(null);
     const [activePage, setActivePage] = useState<null | 'conditions' | 'medications' | 'allergies' | 'bloodtype'>(null);
@@ -19,6 +20,7 @@ export default function MedicalRecords() {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
                 setUserId(firebaseUser.uid);
+                fetchInformation(firebaseUser.uid);
             }
         });
         return () => unsubscribe();
@@ -26,21 +28,19 @@ export default function MedicalRecords() {
 
     const fetchInformation = async (uid: string) => {
         try {
-            const docRef = doc(db, "users", uid);
-            const snapshot = await getDoc(docRef);
             const medicalDocRef = doc(db, "users", uid, "MedicalInformation", "main");
             const medicalSnapshot = await getDoc(medicalDocRef);
 
+            if (medicalSnapshot.exists()) {
+                const medicalData = medicalSnapshot.data();
 
-            if (snapshot.exists()) {
-                const data = snapshot.data();
-                if (medicalSnapshot.exists()) {
-                    const medicalData = medicalSnapshot.data();
-
-                }
+                setMedicalConditions(medicalData.medicalConditions || []);
+                setCurrentMedications(medicalData.currentMedications || []);
+                setAllergies(medicalData.allergies || []);
+                setBloodType(medicalData.bloodType || null);
             }
         } catch (error) {
-            console.error("Error fetching user data:", error);
+            console.error("Error fetching medical information:", error);
         }
     };
 
@@ -51,29 +51,40 @@ export default function MedicalRecords() {
         switch (activePage) {
             case 'conditions':
                 title = "Medical Conditions";
-                items = ["Achilles tendinopathy", "Addison's disease", "Lupus"];
+                items = medicalConditions;
                 break;
             case 'medications':
                 title = "Current Medications";
-                items = ["Ibuprofen", "Metformin"];
+                items = currentMedications;
                 break;
             case 'allergies':
                 title = "Allergies";
-                items = ["Pollen", "Penicillin"];
+                items = allergies;
                 break;
             case 'bloodtype':
                 title = "Blood Type";
-                items = ["O+"];
+                items = bloodType ? [bloodType] : [];
                 break;
         }
 
+        // 🔒 Defensive rendering if items are not available
+        const noDataAvailable = items.length === 0;
+
         return (
             <View className="flex-1 items-center" style={{ backgroundColor: theme.background, borderRadius: 9 }}>
-                <Text className="font-bold text-2xl mb-5" style={{ color: theme.text }}>Medical Records</Text>
+                <Text className="font-bold text-2xl mb-5" style={{ color: theme.text }}>
+                    Medical Records
+                </Text>
 
-                <View className="flex justify-start" style={{ backgroundColor: "#D9D9D9", borderRadius: 9, width: "80%", height: "70%" }}>
+                <View
+                    className="flex justify-start"
+                    style={{ backgroundColor: "#D9D9D9", borderRadius: 9, width: "80%", height: "70%" }}
+                >
                     {/* Top Bar with Back and Title */}
-                    <View className="flex-row justify-between items-center border-b border-gray-300 pt-6 pb-6 px-6 w-full" style={{ backgroundColor: '#7f8c8d', borderTopLeftRadius: 9, borderTopRightRadius: 9 }}>
+                    <View
+                        className="flex-row justify-between items-center border-b border-gray-300 pt-6 pb-6 px-6 w-full"
+                        style={{ backgroundColor: "#7f8c8d", borderTopLeftRadius: 9, borderTopRightRadius: 9 }}
+                    >
                         <TouchableOpacity onPress={() => setActivePage(null)}>
                             <Text className="text-white text-2xl font-bold">{title}</Text>
                         </TouchableOpacity>
@@ -83,17 +94,20 @@ export default function MedicalRecords() {
                     </View>
 
                     {/* Content */}
-                    <View>
-                        {items.map((item, index) => (
-                            <View
-                                key={index}
-                                className="flex-row items-center border-t border-b border-gray-300 pt-6 pb-6 px-6"
-                            >
-                                <Text className="text-black text-lg font-medium">→ {item}</Text>
-                            </View>
-                        ))}
+                    <View className="flex-1 items-center px-6">
+                        {noDataAvailable ? (
+                            <Text className="text-gray-700 text-lg italic">No data available.</Text>
+                        ) : (
+                            items.map((item, index) => (
+                                <View
+                                    key={index}
+                                    className="flex-row items-center border-t border-b border-gray-300 pt-6 pb-6 w-full"
+                                >
+                                    <Text className="text-black text-lg font-medium">→ {item}</Text>
+                                </View>
+                            ))
+                        )}
                     </View>
-
                 </View>
 
                 <TouchableOpacity className="bg-[#1E88E5] mt-6 p-4 rounded-lg items-center mt-2">
@@ -140,7 +154,7 @@ export default function MedicalRecords() {
                 </TouchableOpacity>
             </View>
 
-            <TouchableOpacity className="bg-[#1E88E5] mt-6 p-4 rounded-lg items-center mt-2">
+            <TouchableOpacity className="bg-[#1E88E5] mt-6 p-4 rounded-lg items-center mt-2" onPress={() => router.push("/Public/(records_stack)/EditRecords")}>
                 <Text className="text-white font-bold">Edit Info</Text>
             </TouchableOpacity>
         </View>
