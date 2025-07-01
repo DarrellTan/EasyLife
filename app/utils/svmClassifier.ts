@@ -89,9 +89,13 @@ export async function classify(text: string): Promise<string[]> {
 
     const inputName = session.inputNames[0];  // <-- get the actual input name
     const results = await session.run({ [inputName]: tensor });
+
+    console.log("Model outputs:", session.outputNames);
     
-    const outputName = session.outputNames[0];
+    // === Find the correct output name (label output) ===
+    const outputName = session.outputNames.find(name => name.toLowerCase().includes("label")) || session.outputNames[0];
     const outputTensor = results[outputName].data as number[];
+    
     console.log("Model inference complete, raw output:", outputTensor); 
 
     const predictedLabels: string[] = [];
