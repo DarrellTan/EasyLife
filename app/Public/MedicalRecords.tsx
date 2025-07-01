@@ -2,13 +2,18 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/FirebaseConfig";
+import { doc, getDoc} from "firebase/firestore";
+import { auth, db } from "@/FirebaseConfig";
 import PlusIcon from "@/components/PlusIcon";
 
 export default function MedicalRecords() {
     const { theme } = useTheme();
     const [userId, setUserId] = useState<string | null>(null);
     const [activePage, setActivePage] = useState<null | 'conditions' | 'medications' | 'allergies' | 'bloodtype'>(null);
+    const [medicalConditions, setMedicalConditions] = useState([]);
+    const [currentMedications, setCurrentMedications] = useState([]);
+    const [allergies, setAllergies] = useState([]);
+    const [bloodType, setBloodType] = useState(null);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -18,6 +23,26 @@ export default function MedicalRecords() {
         });
         return () => unsubscribe();
     }, []);
+
+    const fetchInformation = async (uid: string) => {
+        try {
+            const docRef = doc(db, "users", uid);
+            const snapshot = await getDoc(docRef);
+            const medicalDocRef = doc(db, "users", uid, "MedicalInformation", "main");
+            const medicalSnapshot = await getDoc(medicalDocRef);
+
+
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (medicalSnapshot.exists()) {
+                    const medicalData = medicalSnapshot.data();
+
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+        }
+    };
 
     const renderDetailContent = () => {
         let title = "";
