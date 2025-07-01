@@ -84,7 +84,7 @@ export default function ReportHistory() {
                                         </Text>
                                         <View style={{ backgroundColor: '#1E1E1E' }}>
                                             {ongoingReports.map((report) => (
-                                                <Pressable key={report.id} className="p-4 rounded-lg" onPress={() => router.push(`/Public/(reports_stack)/${report.id}`)}>
+                                                <Pressable key={report.id} className="p-4 rounded-lg" onPress={() => router.push(`/Operators/(reports_stack)/${report.id}`)}>
                                                     <View className="flex-row items-center gap-4">
                                                         <AlertIcon className="mr-4" size={40} />
                                                         <View className="flex gap-1">
