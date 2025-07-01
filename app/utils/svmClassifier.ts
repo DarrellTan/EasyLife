@@ -77,7 +77,6 @@ function transform(text: string): number[] {
 export async function classify(text: string): Promise<string[]> {
   try {
     if (!text || text.trim() === '') return ["unknown"];
-
     console.log("Classify called with input:", text);
     
     console.log("Calling loadModel... (make sure Vosk is fully initialized)");
@@ -85,9 +84,21 @@ export async function classify(text: string): Promise<string[]> {
     console.log("ONNX model loaded, proceeding to inference...");
     
     const inputVector = Float32Array.from(transform(text));
+    console.log("TF-IDF vector length:", inputVector.length);
+    console.log("Sample TF-IDF values:", inputVector.slice(0, 10)); // first 10 values
+    
     const tensor = new ort.Tensor('float32', inputVector, [1, inputVector.length]);
+    console.log(" Created tensor with dims:", tensor.dims);
+    console.log("Data type of tensor:", tensor.type);
 
+    // === Check model input/output names ===
+    console.log("Model input names:", session.inputNames);
+    console.log("Model output names:", session.outputNames);
+    
     const inputName = session.inputNames[0];  // <-- get the actual input name
+
+    // === Run the model ===
+    console.log("Running inference...");
     const results = await session.run({ [inputName]: tensor });
 
     console.log("Model outputs:", session.outputNames);
