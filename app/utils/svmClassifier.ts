@@ -15,9 +15,9 @@ export async function loadModel() {
   }
   console.log("Preparing to load ONNX model from assets...");
 
-  const modelAsset = Asset.fromModule(require('@/app/assets/ml/svm_model_multilabel_1.0.onnx'));
+  const modelAsset = Asset.fromModule(require('@/app/assets/ml/svm_model_multilabel_2.0.onnx'));
   await modelAsset.downloadAsync();
-  const modelPath = `${FileSystem.cacheDirectory}svm_model_multilabel_1.0.onnx`;
+  const modelPath = `${FileSystem.cacheDirectory}svm_model_multilabel_2.0.onnx`;
   await FileSystem.copyAsync({ from: modelAsset.localUri!, to: modelPath });
 
   console.log("Model copied to cache path:", modelPath);
