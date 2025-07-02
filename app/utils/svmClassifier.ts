@@ -123,9 +123,11 @@ export async function classify(text: string): Promise<string[]> {
     
     console.log("Model inference complete, raw output:", outputTensor); 
 
+    // BigInt safe check
+    const isPositiveOne = (val: any) => val === 1 || val === 1n;
     const predictedLabels: string[] = [];
-    outputTensor.forEach((value: number, index: number) => {
-      if (value === 1) {
+    outputTensor.forEach((value, index) => {
+      if (isPositiveOne(value)) {
         const rawLabel = labelMap[index] || `unknown_${index}`;
         const cleaned = rawLabel.replace(/[\[\]'"\s]/g, '');
         predictedLabels.push(cleaned);
