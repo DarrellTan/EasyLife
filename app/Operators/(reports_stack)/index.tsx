@@ -27,7 +27,9 @@ export default function ReportHistory() {
                 setUser(firebaseUser);
 
                 const reportsRef = collection(db, "reports");
-                const q = query(reportsRef, where("assignedOperator", "==", firebaseUser.uid));
+                const q = query(reportsRef, where("assignmentOperatorIds", "array-contains", firebaseUser.uid));
+
+
 
                 const unsubscribeSnapshot = onSnapshot(q, (querySnapshot) => {
                     const ongoing: any[] = [];

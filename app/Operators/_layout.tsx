@@ -23,12 +23,13 @@ export default function Layout() {
     const { theme } = useTheme();
     const [activeReportId, setActiveReport] = useActiveReportContext();
     const locationData = useRef<any>(null);
+    const [type, setType] = useState();
 
     const uploadGeolocation = (userId: string, locationData: any) => {
-        const locationRef = ref(rtdb, `reports/${activeReportId}/operatorGeolocation`);
+        const locationRef = ref(rtdb, `reports/${activeReportId}/${type}Geolocation`);
         return set(locationRef, locationData)
             .then(() => {
-                console.log("📍 Operator location uploaded:", locationData);
+                console.log(`📍 ${type} location uploaded:`, locationData);
             })
             .catch((error) => {
                 console.error("❌ Error uploading location:", error);
@@ -108,11 +109,14 @@ export default function Layout() {
             if (firebaseUser) {
                 const userDocRef = doc(db, "operators", firebaseUser.uid);
 
+
                 // Subscribe to realtime updates of the user doc
                 unsubscribeFromUserDoc = onSnapshot(userDocRef, (userDoc) => {
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         setStatus(userData.status);
+                        setType(userData.type);
+                        console.log(type);
                         if (userData.profilePicUrl) {
                             setSelectedImage(userData.profilePicUrl);
                         } else {

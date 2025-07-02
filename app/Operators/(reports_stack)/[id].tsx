@@ -18,6 +18,8 @@ export default function DetailedReport() {
     const { id } = useLocalSearchParams();
     const [activeReportId, setActiveReport] = useActiveReportContext();
     const navigation = useNavigation();
+    const [assignments, setAssignments] = useState([]);
+
 
 
     // useStates for Fetching information
@@ -89,15 +91,28 @@ export default function DetailedReport() {
                     status: "Complete",
                 });
 
-                // If operator is assigned, update their status
+                const operatorUpdatePromises: Promise<void>[] = [];
+
+                // ✅ If assignedOperator is present, update that operator's status
                 if (reportData.assignedOperator) {
                     const operatorRef = doc(db, "operators", reportData.assignedOperator);
-                    await updateDoc(operatorRef, {
-                        status: "available", // spelling fix here
+                    operatorUpdatePromises.push(updateDoc(operatorRef, { status: "available" }));
+                }
+
+                // ✅ If there are assignments with operatorIds, update those too
+                if (Array.isArray(reportData.assignments)) {
+                    reportData.assignments.forEach((assignment: any) => {
+                        if (assignment.operatorId) {
+                            const operatorRef = doc(db, "operators", assignment.operatorId);
+                            operatorUpdatePromises.push(updateDoc(operatorRef, { status: "available" }));
+                        }
                     });
                 }
 
-                console.log("Report and operator status updated.");
+                // Wait for all operator updates to complete
+                await Promise.all(operatorUpdatePromises);
+
+                console.log("Report and operator statuses updated.");
             } else {
                 console.warn("Report document does not exist.");
             }
@@ -105,6 +120,7 @@ export default function DetailedReport() {
             console.error("Error updating report:", error);
         }
     };
+    ;
 
     const cancelReport = async (id: string) => {
         setReportComplete(id);
@@ -124,6 +140,45 @@ export default function DetailedReport() {
         });
     }
 
+    const fetchAssignments = async () => {
+        try {
+            const reportRef = doc(db, "reports", id);
+            const reportSnap = await getDoc(reportRef);
+
+            if (reportSnap.exists()) {
+                const reportData = reportSnap.data();
+
+                if (Array.isArray(reportData.assignments)) {
+                    const enrichedAssignments = await Promise.all(
+                        reportData.assignments.map(async (assignment) => {
+                            if (assignment.operatorId) {
+                                const operatorRef = doc(db, "operators", assignment.operatorId);
+                                const operatorSnap = await getDoc(operatorRef);
+                                if (operatorSnap.exists()) {
+                                    return {
+                                        ...assignment,
+                                        operatorData: operatorSnap.data()
+                                    };
+                                }
+                            }
+                            return {
+                                ...assignment,
+                                operatorData: null
+                            };
+                        })
+                    );
+
+                    setAssignments(enrichedAssignments);
+                    console.log("Enriched assignments:", enrichedAssignments);
+                } else {
+                    console.log("Assignments not found or not an array.");
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching assignments:", error);
+        }
+    };
+
     const fetchReports = async (uid: string) => {
         setLoading(true);
         try {
@@ -140,6 +195,8 @@ export default function DetailedReport() {
                 setStatus(reportData.status);
                 setOperatorId(reportData.assignedOperator);
                 setEmergencyService(reportData.assignedEmergencyService);
+                setAssignments(reportData.assignments);
+                console.log("assignments = " + assignments);
 
                 // 🔽 Fetch operator profile after setting operatorId
                 if (reportData.userId) {

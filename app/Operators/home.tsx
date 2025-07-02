@@ -342,7 +342,8 @@ export default function Home() {
 
                 const userDocRef = doc(db, "operators", firebaseUser.uid);
                 const reportsRef = collection(db, "reports");
-                const reportsQuery = query(reportsRef, where("assignedOperator", "==", firebaseUser.uid));
+                const reportsQuery = query(reportsRef, where("assignmentOperatorIds", "array-contains", firebaseUser.uid));
+                console.log(reportsQuery);
 
                 // Fetch profile data once
                 const fetchUserData = async () => {
@@ -366,6 +367,7 @@ export default function Home() {
 
                 // Listen to real-time updates on reports
                 const unsubscribeReports = onSnapshot(reportsQuery, (querySnapshot) => {
+                    console.log("📡 Reports snapshot triggered. Size:", querySnapshot.size);
                     let foundActive = false;
 
                     querySnapshot.forEach((doc) => {
@@ -381,6 +383,7 @@ export default function Home() {
                         setActiveReport(null);
                     }
                 });
+
 
                 // Clean up when component unmounts or auth state changes
                 return () => {
