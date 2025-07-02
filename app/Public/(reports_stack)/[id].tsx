@@ -10,15 +10,17 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useActiveReportContext } from '@/context/ActiveReportContext';
 import { useNavigation } from '@react-navigation/native';
 
-
-
-
-
 export default function DetailedReport() {
     const { theme } = useTheme();
     const { id } = useLocalSearchParams();
     const [activeReportId, setActiveReport] = useActiveReportContext();
     const navigation = useNavigation();
+    const [hasAssignments, setHasAssignments] = useState(false);
+    const [assignments, setAssignments] = useState([]);
+    const [detailedAssignments, setDetailedAssignments] = useState([]);
+
+
+
 
 
     // useStates for Fetching information
@@ -90,15 +92,29 @@ export default function DetailedReport() {
                     status: "Complete",
                 });
 
-                // If operator is assigned, update their status
+                // Update status of assignedOperator if exists
                 if (reportData.assignedOperator) {
                     const operatorRef = doc(db, "operators", reportData.assignedOperator);
                     await updateDoc(operatorRef, {
-                        status: "available", // spelling fix here
+                        status: "available",
                     });
                 }
 
-                console.log("Report and operator status updated.");
+                // If there are assignments with operatorIds, update those too
+                if (Array.isArray(reportData.assignments)) {
+                    const updatePromises = reportData.assignments.map((assignment: any) => {
+                        if (assignment.operatorId) {
+                            const operatorRef = doc(db, "operators", assignment.operatorId);
+                            return updateDoc(operatorRef, { status: "available" });
+                        }
+                        return null;
+                    });
+
+                    // Filter out nulls and wait for all updates to complete
+                    await Promise.all(updatePromises.filter(Boolean));
+                }
+
+                console.log("Report and operator statuses updated.");
             } else {
                 console.warn("Report document does not exist.");
             }
@@ -106,6 +122,7 @@ export default function DetailedReport() {
             console.error("Error updating report:", error);
         }
     };
+
 
     const cancelReport = async (id: string) => {
         setReportComplete(id);
@@ -134,6 +151,20 @@ export default function DetailedReport() {
 
             if (reportDoc.exists()) {
                 const reportData = reportDoc.data();
+
+                // 👇 Check for assignments field so that it renders the old report history of single classification if assignments = false
+                if (reportData.assignments && Array.isArray(reportData.assignments) && reportData.assignments.length > 0) {
+                    setHasAssignments(true);
+                    setDate(reportData.date);
+                    setTranscribedText(reportData.transcribedText);
+                    setLatitude(reportData.location.latitude);
+                    setLongitude(reportData.location.longitude);
+                    setStatus(reportData.status);
+                    fetchAssignments();
+                    console.log(reportData.assignments);
+                    return; // ✅ Exit early, render new assignment view
+                }
+
                 setDate(reportData.date);
                 setTranscribedText(reportData.transcribedText);
                 setLatitude(reportData.location.latitude);
@@ -166,6 +197,46 @@ export default function DetailedReport() {
             setLoading(false);
         }
     };
+
+    const fetchAssignments = async () => {
+        try {
+            const reportRef = doc(db, "reports", id);
+            const reportSnap = await getDoc(reportRef);
+
+            if (reportSnap.exists()) {
+                const reportData = reportSnap.data();
+
+                if (Array.isArray(reportData.assignments)) {
+                    const enrichedAssignments = await Promise.all(
+                        reportData.assignments.map(async (assignment) => {
+                            if (assignment.operatorId) {
+                                const operatorRef = doc(db, "operators", assignment.operatorId);
+                                const operatorSnap = await getDoc(operatorRef);
+                                if (operatorSnap.exists()) {
+                                    return {
+                                        ...assignment,
+                                        operatorData: operatorSnap.data()
+                                    };
+                                }
+                            }
+                            return {
+                                ...assignment,
+                                operatorData: null
+                            };
+                        })
+                    );
+
+                    setAssignments(enrichedAssignments);
+                    console.log("Enriched assignments:", enrichedAssignments);
+                } else {
+                    console.log("Assignments not found or not an array.");
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching assignments:", error);
+        }
+    };
+
 
     const fetchOperatorProfile = async (operatorId) => {
         try {
@@ -237,21 +308,51 @@ export default function DetailedReport() {
                     <View className="self-center mt-4" style={{ width: "90%"}}>
                         <Text className="font-bold text-2xl text-white">Emergency Operator</Text>
 
-                       <View className="flex-row items-center mt-4">
-                           <Image
-                               source={
-                                   selectedImage
-                                       ? { uri: selectedImage }
-                                       : require("@/assets/images/cloud-upload-outline.jpg")
-                               }
-                               style={{ width: 60, height: 60, borderRadius: 150, borderColor: theme.text, borderWidth: 2 }}
-                           />
+                        {hasAssignments === false && (
+                            <View className="flex-row items-center mt-4">
+                                <Image
+                                    source={
+                                        selectedImage
+                                            ? { uri: selectedImage }
+                                            : require("@/assets/images/cloud-upload-outline.jpg")
+                                    }
+                                    style={{ width: 60, height: 60, borderRadius: 150, borderColor: theme.text, borderWidth: 2 }}
+                                />
 
-                           <View className="ml-4 items-start">
-                               <Text className="font-bold text-2xl text-white">{operatorProfile?.fullName ?? "N/A"}</Text>
-                               <Text className="font-bold text-l text-white mt-1">{emergencyService ?? "N/A"}</Text>
-                           </View>
-                       </View>
+                                <View className="ml-4 items-start">
+                                    <Text className="font-bold text-2xl text-white">{operatorProfile?.fullName ?? "N/A"}</Text>
+                                    <Text className="font-bold text-l text-white mt-1">{emergencyService ?? "N/A"}</Text>
+                                </View>
+                            </View>
+                        )}
+
+                        {hasAssignments && assignments.map((assignment, index) => (
+                            <View key={index} className="flex-row items-center mt-4">
+                                <Image
+                                    source={
+                                        assignment.operatorData?.profilePicUrl
+                                            ? { uri: assignment.operatorData.profilePicUrl }
+                                            : require("@/assets/images/cloud-upload-outline.jpg")
+                                    }
+                                    style={{
+                                        width: 60,
+                                        height: 60,
+                                        borderRadius: 150,
+                                        borderColor: theme.text,
+                                        borderWidth: 2,
+                                    }}
+                                />
+
+                                <View className="ml-4 items-start">
+                                    <Text className="font-bold text-2xl text-white">
+                                        {assignment.operatorData?.fullName ?? "N/A"}
+                                    </Text>
+                                    <Text className="font-bold text-l text-white mt-1">
+                                        {assignment.operatorData?.emergencyService ?? "N/A"}
+                                    </Text>
+                                </View>
+                            </View>
+                        ))}
                     </View>
 
                     {status === "Active" && (
