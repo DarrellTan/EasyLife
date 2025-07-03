@@ -849,16 +849,16 @@ export default function Home() {
                 </Pressable>
             </Modal>
 
-            <Text className="text-white text-2xl">
-                {activeReportId}, hi {profilePicURL}
-            </Text>
+            {/*<Text className="text-white text-2xl">*/}
+            {/*    {activeReportId}, hi {profilePicURL}*/}
+            {/*</Text>*/}
 
-            {selectedLocation && (
-                <Text className="text-white text-2xl">
-                    {selectedLocation.latitude}, {selectedLocation.longitude}
-                    {activeReportId}
-                </Text>
-            )}
+            {/*{selectedLocation && (*/}
+            {/*    <Text className="text-white text-2xl">*/}
+            {/*        {selectedLocation.latitude}, {selectedLocation.longitude}*/}
+            {/*        {activeReportId}*/}
+            {/*    </Text>*/}
+            {/*)}*/}
         </SafeAreaView>
     );
 }
