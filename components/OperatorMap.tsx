@@ -62,11 +62,9 @@ const Map = () => {
         if (!userId) return;
 
 
-        const q = query(
-            collection(db, 'reports'),
-            where('assignedOperator', '==', userId),
-            where('status', '==', 'Active')
-        );
+        const reportsRef = collection(db, "reports");
+        const q = query(reportsRef, where("assignmentOperatorIds", "array-contains", userId));
+
 
         console.log("Query active");
 
@@ -187,7 +185,7 @@ const Map = () => {
                         onPress={() => openNavigation(carPosition.latitude, carPosition.longitude)}
                     >
                         <Ionicons name="navigate-circle-outline" size={24} color="white" />
-                        <Text style={styles.navigateText}> Navigate to Operator</Text>
+                        <Text style={styles.navigateText}> Navigate to Emergency</Text>
                     </TouchableOpacity>
                 )}
             </MapView>

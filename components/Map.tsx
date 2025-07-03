@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import MapView, { PROVIDER_DEFAULT, Region, Polyline } from 'react-native-maps';
 import { onSnapshot, collection, query, where } from 'firebase/firestore';
-import { auth, db, rtdb } from '@/FirebaseConfig'; // Ensure realtimeDb is exported from FirebaseConfig
+import { auth, db, rtdb } from '@/FirebaseConfig';
 import * as Location from 'expo-location';
 import { onAuthStateChanged } from 'firebase/auth';
 // @ts-ignore
@@ -14,9 +14,14 @@ const Map = () => {
     const [userId, setUserId] = useState<string | null>(null);
     const [region, setRegion] = useState<Region | null>(null);
     const [carPosition, setCarPosition] = useState<{ latitude: number; longitude: number } | null>(null);
-    const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
-    const [reportId, setReportId] = useState<string | null>(null);
+    const [policePosition, setPolicePosition] = useState<{ latitude: number; longitude: number } | null>(null);
+    const [firePosition, setFirePosition] = useState<{ latitude: number; longitude: number } | null>(null);
 
+    const [hospitalRouteCoords, setHospitalRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+    const [policeRouteCoords, setPoliceRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+    const [fireRouteCoords, setFireRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+
+    const [reportId, setReportId] = useState<string | null>(null);
     const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_API_KEY;
 
     useEffect(() => {
@@ -54,7 +59,6 @@ const Map = () => {
         getCurrentLocation();
     }, []);
 
-    // Listen for active report from Firestore
     useEffect(() => {
         if (!userId) return;
 
@@ -70,33 +74,41 @@ const Map = () => {
             if (hasReport) {
                 const reportDoc = querySnapshot.docs[0];
                 const id = reportDoc.id;
-                console.log(id);
                 setReportId(id);
 
-                // Listen for operator location from Realtime DB
-                const operatorRef = ref(rtdb, `reports/${id}/operatorGeolocation`);
-                onValue(operatorRef, async (snapshot) => {
-                    const data = snapshot.val();
-                    console.log(data);
-                    if (data?.latitude && data?.longitude) {
-                        const operatorCoords = {
-                            latitude: data.latitude,
-                            longitude: data.longitude,
-                        };
+                const setupListener = (
+                    path: string,
+                    setPosition: (pos: { latitude: number; longitude: number }) => void,
+                    setRoute: (coords: { latitude: number; longitude: number }[]) => void
+                ) => {
+                    const refPath = ref(rtdb, `reports/${id}/${path}`);
+                    onValue(refPath, async (snapshot) => {
+                        const data = snapshot.val();
+                        if (data?.latitude && data?.longitude) {
+                            const operatorCoords = {
+                                latitude: data.latitude,
+                                longitude: data.longitude,
+                            };
 
-                        const location = await Location.getCurrentPositionAsync({
-                            accuracy: Location.Accuracy.High,
-                        });
+                            const location = await Location.getCurrentPositionAsync({
+                                accuracy: Location.Accuracy.High,
+                            });
 
-                        const userCoords = {
-                            latitude: location.coords.latitude,
-                            longitude: location.coords.longitude,
-                        };
+                            const userCoords = {
+                                latitude: location.coords.latitude,
+                                longitude: location.coords.longitude,
+                            };
 
-                        setCarPosition(operatorCoords); // Set operator position for marker
-                        await getRoute(userCoords, operatorCoords); // Draw route
-                    }
-                });
+                            setPosition(operatorCoords);
+                            const route = await getRoute(userCoords, operatorCoords);
+                            setRoute(route);
+                        }
+                    });
+                };
+
+                setupListener('hospitalGeolocation', setCarPosition, setHospitalRouteCoords);
+                setupListener('policeGeolocation', setPolicePosition, setPoliceRouteCoords);
+                setupListener('fireGeolocation', setFirePosition, setFireRouteCoords);
             }
         }, (error) => {
             console.error('Error listening for active report:', error);
@@ -108,7 +120,7 @@ const Map = () => {
     const getRoute = async (
         start: { latitude: number; longitude: number },
         end: { latitude: number; longitude: number }
-    ) => {
+    ): Promise<{ latitude: number; longitude: number }[]> => {
         try {
             const origin = `${start.latitude},${start.longitude}`;
             const destination = `${end.latitude},${end.longitude}`;
@@ -120,22 +132,21 @@ const Map = () => {
 
             if (data.routes.length) {
                 const points = polyline.decode(data.routes[0].overview_polyline.points);
-                const routePath = points.map(([lat, lng]: [number, number]) => ({
+                return points.map(([lat, lng]: [number, number]) => ({
                     latitude: lat,
                     longitude: lng,
                 }));
-                setRouteCoords(routePath);
             } else {
                 console.warn('No route found');
+                return [];
             }
         } catch (error) {
             console.error('Error fetching route:', error);
+            return [];
         }
     };
 
-    if (!region) {
-        return null; // or a loading spinner
-    }
+    if (!region) return null;
 
     return (
         <MapView
@@ -150,11 +161,41 @@ const Map = () => {
                     longitude={carPosition.longitude}
                 />
             )}
-            <Polyline
-                coordinates={routeCoords}
-                strokeColor="red"
-                strokeWidth={4}
-            />
+            {policePosition && (
+                <CarMarker
+                    latitude={policePosition.latitude}
+                    longitude={policePosition.longitude}
+                />
+            )}
+            {firePosition && (
+                <CarMarker
+                    latitude={firePosition.latitude}
+                    longitude={firePosition.longitude}
+                />
+            )}
+
+            {/* ROUTES */}
+            {hospitalRouteCoords.length > 0 && (
+                <Polyline
+                    coordinates={hospitalRouteCoords}
+                    strokeColor="red"
+                    strokeWidth={4}
+                />
+            )}
+            {policeRouteCoords.length > 0 && (
+                <Polyline
+                    coordinates={policeRouteCoords}
+                    strokeColor="blue"
+                    strokeWidth={4}
+                />
+            )}
+            {fireRouteCoords.length > 0 && (
+                <Polyline
+                    coordinates={fireRouteCoords}
+                    strokeColor="orange"
+                    strokeWidth={4}
+                />
+            )}
         </MapView>
     );
 };

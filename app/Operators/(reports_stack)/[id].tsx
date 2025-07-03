@@ -29,6 +29,7 @@ export default function DetailedReport() {
     const [longitude, setLongitude] = useState();
     const [location, setLocation] = useState();
     const [userProfile, setUserProfile] = useState(null);
+    const [userId, setUserId] = useState();
     const [operatorName, setOperatorName] = useState("N/A");
 
     const [loading, setLoading] = useState(true);
@@ -200,6 +201,7 @@ export default function DetailedReport() {
 
                 // 🔽 Fetch operator profile after setting operatorId
                 if (reportData.userId) {
+                    setUserId(reportData.userId);
                     const userRef = doc(db, "users", reportData.userId);
                     const userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
@@ -304,7 +306,15 @@ export default function DetailedReport() {
                            />
 
                            <View className="ml-4 items-start">
-                               <Text className="font-bold text-2xl text-white">{userProfile?.fullName ?? "N/A"}</Text>
+                               <Text className="font-bold text-2xl text-white">
+                                   {userProfile?.fullName ?? "N/A"}
+                               </Text>
+
+                               <TouchableOpacity onPress={() => router.push(`/Operators/(reports_stack)/medicalRecords/${userId}`)}>
+                                   <Text className="font-bold text-l text-white mt-1">
+                                      View Medical Records
+                                   </Text>
+                               </TouchableOpacity>
                            </View>
                        </View>
                     </View>
