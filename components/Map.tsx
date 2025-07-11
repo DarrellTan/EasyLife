@@ -9,6 +9,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 import polyline from '@mapbox/polyline';
 import CarMarker from './CarMarker';
 import { ref, onValue } from 'firebase/database';
+import { useActiveReportContext } from '@/context/ActiveReportContext';
+
+
 
 const Map = () => {
     const [userId, setUserId] = useState<string | null>(null);
@@ -23,6 +26,8 @@ const Map = () => {
 
     const [reportId, setReportId] = useState<string | null>(null);
     const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_API_KEY;
+    const [activeReportId, setActiveReport] = useActiveReportContext();
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -60,62 +65,54 @@ const Map = () => {
     }, []);
 
     useEffect(() => {
-        if (!userId) return;
+        if (!activeReportId) return;
+        console.log("listener activated");
 
-        const q = query(
-            collection(db, 'reports'),
-            where('userId', '==', userId),
-            where('status', '==', 'Active')
-        );
+        const setupListener = (
+            path: string,
+            setPosition: (pos: { latitude: number; longitude: number }) => void,
+            setRoute: (coords: { latitude: number; longitude: number }[]) => void
+        ) => {
+            const refPath = ref(rtdb, `reports/${activeReportId}/${path}`);
+            console.log("refPath called");
+            const unsubscribe = onValue(refPath, async (snapshot) => {
+                const data = snapshot.val();
+                if (data?.latitude && data?.longitude) {
+                    const operatorCoords = {
+                        latitude: data.latitude,
+                        longitude: data.longitude,
+                    };
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const hasReport = !querySnapshot.empty;
-
-            if (hasReport) {
-                const reportDoc = querySnapshot.docs[0];
-                const id = reportDoc.id;
-                setReportId(id);
-
-                const setupListener = (
-                    path: string,
-                    setPosition: (pos: { latitude: number; longitude: number }) => void,
-                    setRoute: (coords: { latitude: number; longitude: number }[]) => void
-                ) => {
-                    const refPath = ref(rtdb, `reports/${id}/${path}`);
-                    onValue(refPath, async (snapshot) => {
-                        const data = snapshot.val();
-                        if (data?.latitude && data?.longitude) {
-                            const operatorCoords = {
-                                latitude: data.latitude,
-                                longitude: data.longitude,
-                            };
-
-                            const location = await Location.getCurrentPositionAsync({
-                                accuracy: Location.Accuracy.High,
-                            });
-
-                            const userCoords = {
-                                latitude: location.coords.latitude,
-                                longitude: location.coords.longitude,
-                            };
-
-                            setPosition(operatorCoords);
-                            const route = await getRoute(userCoords, operatorCoords);
-                            setRoute(route);
-                        }
+                    const location = await Location.getCurrentPositionAsync({
+                        accuracy: Location.Accuracy.High,
                     });
-                };
 
-                setupListener('hospitalGeolocation', setCarPosition, setHospitalRouteCoords);
-                setupListener('policeGeolocation', setPolicePosition, setPoliceRouteCoords);
-                setupListener('fireGeolocation', setFirePosition, setFireRouteCoords);
-            }
-        }, (error) => {
-            console.error('Error listening for active report:', error);
-        });
+                    const userCoords = {
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                    };
 
-        return () => unsubscribe();
-    }, [userId]);
+                    setPosition(operatorCoords);
+                    const route = await getRoute(userCoords, operatorCoords);
+                    setRoute(route);
+                }
+            });
+
+            return unsubscribe; // for cleanup
+        };
+
+        const unsubHospital = setupListener('hospitalGeolocation', setCarPosition, setHospitalRouteCoords);
+        const unsubPolice = setupListener('policeGeolocation', setPolicePosition, setPoliceRouteCoords);
+        const unsubFire = setupListener('fireGeolocation', setFirePosition, setFireRouteCoords);
+        console.log(unsubFire);
+
+        return () => {
+            unsubHospital?.();
+            unsubPolice?.();
+            unsubFire?.();
+        };
+    }, [activeReportId]);
+
 
     const getRoute = async (
         start: { latitude: number; longitude: number },
@@ -152,7 +149,7 @@ const Map = () => {
         <MapView
             provider={PROVIDER_DEFAULT}
             style={styles.map}
-            initialRegion={region}
+            region={region}
             showsUserLocation
         >
             {carPosition && (
