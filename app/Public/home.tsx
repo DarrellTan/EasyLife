@@ -34,6 +34,9 @@ export default function Home() {
     const colorScheme = useColorScheme();
     const [activeReportId, setActiveReport] = useActiveReportContext();
     const [profilePicURL, setProfilePicURL] = useProfilePicContext();
+    const [count, setCount] = useState(null);
+    const [message, setMessage] = useState("Describe your emergency");
+    const [bottomMessage, setBottomMessage] = useState("Hold the icon and speak");
 
 
     const insets = useSafeAreaInsets();
@@ -60,6 +63,8 @@ export default function Home() {
         unloadModel();  // cleanup SVM ONNX session
         await new Promise(resolve => setTimeout(resolve, 1000)); // delay 
         setIsModelLoaded(false); // ensure reload works later
+        setMessage("Describe your emergency");
+        setBottomMessage("Hold the icon and speak");
     };
 
     // Select Location Message Modal
@@ -136,6 +141,22 @@ export default function Home() {
     const [pendingAction, setPendingAction] = useState<"load" | "start" | null>(null);
     const pendingActionRef = useRef<"load" | "start" | null>(null);
 
+    useEffect(() => {
+        if (count > 0 & count < 5) {
+            const timer = setTimeout(() => {
+                const newCount = count - 1;
+                setCount(newCount);
+                setMessage(`Wait ${newCount} seconds`);
+                setBottomMessage("Hold the icon and speak")
+            }, 1000);
+            return () => clearTimeout(timer); // clear timeout if component unmounts
+        } if (count == 0) {
+            setMessage("Speak!");
+        } else {
+            console.log(count);
+            setMessage("Describe your emergency");
+        }
+    }, [count]);
 
     useEffect(() => {
         pendingActionRef.current = pendingAction;
@@ -182,6 +203,7 @@ export default function Home() {
             try {
                 console.log('Vosk final result:', result);
                 setTranscription(result);   // store transcription for UI
+                setBottomMessage("Transcribed Message: " + result);
                 const predicted = await classify(result);   // svm inference
                 console.log('SVM Prediction:', predicted);
                 setPrediction(predicted);
@@ -629,11 +651,15 @@ export default function Home() {
                         <Pressable
                             onPressIn={() => {
                                 console.log("Holding Down");
+                                setCount(3);
+                                setMessage("Wait 3 seconds");
                                 startVoiceRecognition();
                             }}
                             onPressOut={() => {
                                 console.log("Released");
-                                stopVoiceRecognition();
+                                setTimeout(() => {
+                                    stopVoiceRecognition();
+                                }, 1000);
                             }}
                             style={{
                                 marginTop: 12,
@@ -648,11 +674,11 @@ export default function Home() {
                         </Pressable>
 
                         <Text className="text-2xl mt-4" style={{ color: theme.opposite, fontWeight: 'bold', textAlign: 'center' }}>
-                            Describe your emergency
+                            {message}
                         </Text>
 
                         <Text className="text-xl" style={{ color: theme.opposite, textAlign: 'center' }}>
-                            Hold the icon and speak
+                            {bottomMessage}
                         </Text>
                         
 

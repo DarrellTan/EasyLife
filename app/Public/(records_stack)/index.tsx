@@ -109,10 +109,6 @@ export default function Index() {
                         )}
                     </View>
                 </View>
-
-                <TouchableOpacity className="bg-[#1E88E5] mt-6 p-4 rounded-lg items-center mt-2">
-                    <Text className="text-white font-bold">Edit Info</Text>
-                </TouchableOpacity>
             </View>
         );
     };

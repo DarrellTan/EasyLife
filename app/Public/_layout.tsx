@@ -245,7 +245,7 @@ export default function Layout() {
             <Tabs.Screen
                 name="(records_stack)"
                 options={{
-                    title: "Reports",
+                    title: "Records",
                     headerTransparent: false,
                     headerShown: false,
                     tabBarIcon: ({ color, size }) => (
