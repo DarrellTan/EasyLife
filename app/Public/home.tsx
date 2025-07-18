@@ -19,8 +19,7 @@ import { classify } from '@/app/utils/svmClassifier';
 import { unloadModel } from '@/app/utils/svmClassifier';
 import { useActiveReportContext } from '@/context/ActiveReportContext';
 import { useProfilePicContext } from '@/context/ProfilePicContext';
-
-
+import Voice from '@react-native-voice/voice';
 
 
 const eventEmitter = new NativeEventEmitter(NativeModules.Vosk);
@@ -39,7 +38,90 @@ export default function Home() {
     const [bottomMessage, setBottomMessage] = useState("Hold the icon and speak");
 
 
+
     const insets = useSafeAreaInsets();
+
+    // React Native Voice Function
+    const [recording, setRecording] = useState(false);
+    const [partialText, setPartialText] = useState('');
+
+    const [result, setResult] = useState();
+    const speechStartHandler = e => {
+        console.log("speech start handler");
+    }
+
+    const speechEndHandler = e => {
+        console.log("speech end handler");
+        setRecording(false);
+    }
+
+    const speechResultsHandler = e => {
+        console.log("Voice event: ", e);
+        const text = e.value[0];
+        setResult(text);
+    }
+
+    const speechPartialResultsHandler = (e) => {
+        console.log('Partial Results:', e.value);
+        if (e.value && e.value.length > 0) {
+            setPartialText(e.value[0]); // Live text
+        }
+    };
+
+    const speechErrorHandler = e => {
+        console.log("Speech Error Handler: ", e);
+    }
+
+    const startRecording = async () => {
+        setRecording(true);
+        try {
+            await Voice.start('en-US');
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    const stopRecording = async () => {
+        try {
+            await Voice.stop();
+            setRecording(false);
+            console.log("Stopped recording");
+            classificationResult();
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    const classificationResult = async () => {
+        if (isClassifying) return; // prevent concurrent calls
+        isClassifying = true;
+        try {
+            console.log('Vosk final result:', result);
+            setTranscription(result);   // store transcription for UI
+            setBottomMessage("Transcribed Message: " + result);
+            const predicted = await classify(result);   // svm inference
+            console.log('SVM Prediction:', predicted);
+            setPrediction(predicted);
+        } catch (err) {
+            console.error('Classification error:', err);
+            setPrediction(["unknown"]);
+        } finally {
+            isClassifying = false;
+        }
+    }
+
+    useEffect(() => {
+        // voice handler
+        Voice.onSpeechStart = speechStartHandler;
+        Voice.onSpeechEnd = speechEndHandler;
+        Voice.onSpeechResults = speechResultsHandler;
+        Voice.onSpeechError = speechErrorHandler;
+        Voice.onSpeechPartialResults = speechPartialResultsHandler;
+
+        return () => {
+            Voice.destroy().then(Voice.removeAllListeners);
+        }
+    }, []);
 
     // Report Model Use State
     const [reportModalVisible, setReportModalVisible] = useState(false);
@@ -141,22 +223,6 @@ export default function Home() {
     const [pendingAction, setPendingAction] = useState<"load" | "start" | null>(null);
     const pendingActionRef = useRef<"load" | "start" | null>(null);
 
-    useEffect(() => {
-        if (count > 0 & count < 5) {
-            const timer = setTimeout(() => {
-                const newCount = count - 1;
-                setCount(newCount);
-                setMessage(`Wait ${newCount} seconds`);
-                setBottomMessage("Hold the icon and speak")
-            }, 1000);
-            return () => clearTimeout(timer); // clear timeout if component unmounts
-        } if (count == 0) {
-            setMessage("Speak!");
-        } else {
-            console.log(count);
-            setMessage("Describe your emergency");
-        }
-    }, [count]);
 
     useEffect(() => {
         pendingActionRef.current = pendingAction;
@@ -203,7 +269,7 @@ export default function Home() {
             try {
                 console.log('Vosk final result:', result);
                 setTranscription(result);   // store transcription for UI
-                setBottomMessage("Transcribed Message: " + result);
+                setBottomMessage("Transcribed Message: " + partialText);
                 const predicted = await classify(result);   // svm inference
                 console.log('SVM Prediction:', predicted);
                 setPrediction(predicted);
@@ -213,7 +279,9 @@ export default function Home() {
             } finally {
                 isClassifying = false;
             }
-        }); 
+        });
+
+
 
 
         const timeoutSubscription = eventEmitter.addListener('onTimeout', () => {
@@ -516,7 +584,7 @@ export default function Home() {
             </View>
             <View className="flex-row justify-center items-center gap-x-7 mt-4">
                 <Pressable
-                    onPress={() => router.push("/Public/ProfilePage")} // Navigate to new screen
+                    onPress={() => router.push("/Public/(records_stack)")} // Navigate to new screen
                     className="bg-medical-records justify-center items-center"
                     style={{
                         width: 160,
@@ -543,7 +611,7 @@ export default function Home() {
             <View className="justify-center items-center mt-4">
                 {/* Custom Button */}
                 <Pressable
-                    onPress={() => router.push("/EnterUserDetails")} // Navigate to new screen
+                    onPress={() => router.push("/Public/(reports_stack)")} // Navigate to new screen
                     className="bg-reports justify-center items-center"
                     style={{
                         width: 360,
@@ -651,14 +719,14 @@ export default function Home() {
                         <Pressable
                             onPressIn={() => {
                                 console.log("Holding Down");
-                                setCount(3);
-                                setMessage("Wait 3 seconds");
-                                startVoiceRecognition();
+                                setMessage("Speak!");
+                                setBottomMessage("Transcribed Message: ");
+                                startRecording();
                             }}
                             onPressOut={() => {
                                 console.log("Released");
                                 setTimeout(() => {
-                                    stopVoiceRecognition();
+                                    stopRecording();
                                 }, 1000);
                             }}
                             style={{

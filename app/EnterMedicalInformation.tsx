@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, ScrollView, SafeAreaView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
 import { router } from "expo-router"
 import { useEffect, useState } from "react";
@@ -76,83 +76,91 @@ export default function EditMedicalInfo({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <ScrollView style={{ flex: 1, backgroundColor: theme.background, padding: 16, paddingTop: 100 }}>
-            <Text className="text-2xl font-bold mb-4" style={{ color: theme.text }}>Edit Medical Information</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+            <KeyboardAvoidingView
+                style={{ flex: 1, backgroundColor: theme.background }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0} // adjust this as needed
+            >
+                <ScrollView style={{ flex: 1, backgroundColor: theme.background, padding: 16 }}>
+                    <Text className="text-3xl font-bold mb-4" style={{ color: theme.text }}>Edit Medical Information</Text>
 
-            {/* Medical Conditions */}
-            <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Medical Conditions</Text>
-            {medicalConditions.map((cond, idx) => (
-                <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-                    <TextInput
-                        value={cond}
-                        onChangeText={(val) => handleListChange(val, idx, setMedicalConditions)}
-                        className="border p-2 flex-1 bg-white rounded"
-                    />
-                    <TouchableOpacity
-                        onPress={() => removeField(idx, setMedicalConditions)}
-                        style={{ marginLeft: 8 }}
-                    >
-                        <Text className="text-red-500">❌</Text>
+                    {/* Medical Conditions */}
+                    <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Medical Conditions</Text>
+                    {medicalConditions.map((cond, idx) => (
+                        <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                            <TextInput
+                                value={cond}
+                                onChangeText={(val) => handleListChange(val, idx, setMedicalConditions)}
+                                className="border p-2 flex-1 bg-white rounded"
+                            />
+                            <TouchableOpacity
+                                onPress={() => removeField(idx, setMedicalConditions)}
+                                style={{ marginLeft: 8 }}
+                            >
+                                <Text className="text-red-500">❌</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                    <TouchableOpacity onPress={() => addField(setMedicalConditions)}>
+                        <Text className="text-blue-600 mb-4">+ Add Condition</Text>
                     </TouchableOpacity>
-                </View>
-            ))}
-            <TouchableOpacity onPress={() => addField(setMedicalConditions)}>
-                <Text className="text-blue-600 mb-4">+ Add Condition</Text>
-            </TouchableOpacity>
 
-            {/* Current Medications */}
-            <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Current Medications</Text>
-            {currentMedications.map((cond, idx) => (
-                <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-                    <TextInput
-                        value={cond}
-                        onChangeText={(val) => handleListChange(val, idx, setCurrentMedications)}
-                        className="border p-2 flex-1 bg-white rounded"
-                    />
-                    <TouchableOpacity
-                        onPress={() => removeField(idx, setCurrentMedications)}
-                        style={{ marginLeft: 8 }}
-                    >
-                        <Text className="text-red-500">❌</Text>
+                    {/* Current Medications */}
+                    <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Current Medications</Text>
+                    {currentMedications.map((cond, idx) => (
+                        <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                            <TextInput
+                                value={cond}
+                                onChangeText={(val) => handleListChange(val, idx, setCurrentMedications)}
+                                className="border p-2 flex-1 bg-white rounded"
+                            />
+                            <TouchableOpacity
+                                onPress={() => removeField(idx, setCurrentMedications)}
+                                style={{ marginLeft: 8 }}
+                            >
+                                <Text className="text-red-500">❌</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                    <TouchableOpacity onPress={() => addField(setCurrentMedications)}>
+                        <Text className="text-blue-600 mb-4">+ Add Medication</Text>
                     </TouchableOpacity>
-                </View>
-            ))}
-            <TouchableOpacity onPress={() => addField(setCurrentMedications)}>
-                <Text className="text-blue-600 mb-4">+ Add Medication</Text>
-            </TouchableOpacity>
 
-            {/* Allergies */}
-            <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Allergies</Text>
-            {allergies.map((cond, idx) => (
-                <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-                    <TextInput
-                        value={cond}
-                        onChangeText={(val) => handleListChange(val, idx, setAllergies)}
-                        className="border p-2 flex-1 bg-white rounded"
-                    />
-                    <TouchableOpacity
-                        onPress={() => removeField(idx, setAllergies)}
-                        style={{ marginLeft: 8 }}
-                    >
-                        <Text className="text-red-500">❌</Text>
+                    {/* Allergies */}
+                    <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Allergies</Text>
+                    {allergies.map((cond, idx) => (
+                        <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+                            <TextInput
+                                value={cond}
+                                onChangeText={(val) => handleListChange(val, idx, setAllergies)}
+                                className="border p-2 flex-1 bg-white rounded"
+                            />
+                            <TouchableOpacity
+                                onPress={() => removeField(idx, setAllergies)}
+                                style={{ marginLeft: 8 }}
+                            >
+                                <Text className="text-red-500">❌</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+                    <TouchableOpacity onPress={() => addField(setAllergies)}>
+                        <Text className="text-blue-600 mb-4">+ Add Allergy</Text>
                     </TouchableOpacity>
-                </View>
-            ))}
-            <TouchableOpacity onPress={() => addField(setAllergies)}>
-                <Text className="text-blue-600 mb-4">+ Add Allergy</Text>
-            </TouchableOpacity>
 
-            {/* Blood Type */}
-            <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Blood Type</Text>
-            <TextInput
-                value={bloodType}
-                onChangeText={setBloodType}
-                className="border p-2 mb-4 bg-white rounded"
-            />
+                    {/* Blood Type */}
+                    <Text className="text-lg font-semibold mb-2" style={{ color: theme.text }}>Blood Type</Text>
+                    <TextInput
+                        value={bloodType}
+                        onChangeText={setBloodType}
+                        className="border p-2 mb-4 bg-white rounded"
+                    />
 
-            <TouchableOpacity onPress={handleSave} className="bg-[#1E88E5] p-4 rounded-lg items-center mt-4">
-                <Text className="text-white font-bold">Save</Text>
-            </TouchableOpacity>
-        </ScrollView>
+                    <TouchableOpacity onPress={handleSave} className="bg-[#1E88E5] p-4 rounded-lg items-center mt-4">
+                        <Text className="text-white font-bold">Save</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }

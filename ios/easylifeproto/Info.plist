@@ -61,6 +61,8 @@
 	<string>Allow $(PRODUCT_NAME) to access your location</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone for voice recognition</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+    <string>We need access to your speech for voice input.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow $(PRODUCT_NAME) to access your photos</string>
 	<key>NSUserActivityTypes</key>

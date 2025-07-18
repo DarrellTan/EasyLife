@@ -1,4 +1,4 @@
-import { SafeAreaView , ScrollView ,View, Text, TextInput, Pressable, Image, TouchableOpacity , Modal, Alert} from "react-native";
+import { SafeAreaView , ScrollView ,View, Text, TextInput, Pressable, Image, TouchableOpacity , Modal, Alert, KeyboardAvoidingView, Platform} from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -221,200 +221,206 @@ export default function ProfilePage() {
     // @ts-ignore
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-            <ScrollView>
-                <View className="items-center px-4" style={{ backgroundColor: theme.background }}>
-                    <View className="flex-row items-center" style={{ backgroundColor: theme.background }}>
-                        <View>
-                            <View style={{ position: "relative", marginRight: 20}}>
-                                <TouchableOpacity onPress={openPicturePopup}>
-                                    <Image
-                                        source={
-                                            selectedImage
-                                                ? { uri: selectedImage }
-                                                : require("@/assets/images/cloud-upload-outline.jpg")
-                                        }
-                                        style={{ width: 100, height: 100, borderRadius: 150, borderColor: theme.text, borderWidth: 2 }}
-                                    />
+            <KeyboardAvoidingView
+                style={{ flex: 1, backgroundColor: theme.background }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0} // adjust this as needed
+            >
+                <ScrollView>
+                    <View className="items-center px-4" style={{ backgroundColor: theme.background }}>
+                        <View className="flex-row items-center" style={{ backgroundColor: theme.background }}>
+                            <View>
+                                <View style={{ position: "relative", marginRight: 20}}>
+                                    <TouchableOpacity onPress={openPicturePopup}>
+                                        <Image
+                                            source={
+                                                selectedImage
+                                                    ? { uri: selectedImage }
+                                                    : require("@/assets/images/cloud-upload-outline.jpg")
+                                            }
+                                            style={{ width: 100, height: 100, borderRadius: 150, borderColor: theme.text, borderWidth: 2 }}
+                                        />
 
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={openPicturePopup}>
-                                    <Ionicons
-                                        name="camera-outline"
-                                        size={20}
-                                        color={theme.text}
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: 7,
-                                            right: 0,
-                                            backgroundColor: theme.background,
-                                            borderRadius: 30,
-                                            padding: 5,
-                                            borderWidth: 2,
-                                            borderColor: theme.text,
-                                        }}
-                                    />
-                                </TouchableOpacity>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={openPicturePopup}>
+                                        <Ionicons
+                                            name="camera-outline"
+                                            size={20}
+                                            color={theme.text}
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: 7,
+                                                right: 0,
+                                                backgroundColor: theme.background,
+                                                borderRadius: 30,
+                                                padding: 5,
+                                                borderWidth: 2,
+                                                borderColor: theme.text,
+                                            }}
+                                        />
+                                    </TouchableOpacity>
 
-                                <Modal
-                                    transparent
-                                    visible={isModalVisible}
-                                    animationType="fade"
-                                    onRequestClose={closePicturePopup}
-                                >
-                                    <Pressable
-                                        style={{
-                                            flex: 1,
-                                            backgroundColor: 'rgba(0,0,0,0.5)',
-                                            justifyContent: 'center',
-                                            alignItems: 'center'
-                                        }}
-                                        onPress={closePicturePopup} // Close when pressing outside
+                                    <Modal
+                                        transparent
+                                        visible={isModalVisible}
+                                        animationType="fade"
+                                        onRequestClose={closePicturePopup}
                                     >
-                                        <View className="items-center" style={{
-                                            width: 300,
-                                            backgroundColor: 'white',
-                                            borderRadius: 10,
-                                            padding: 20
-                                        }}>
-                                            <Pressable onPress={() => {pickFromGallery()}}>
-                                                <Text style={{ color: 'blue', marginBottom: 10 }}>Pick from Gallery</Text>
-                                            </Pressable>
-                                            <Pressable onPress={() => {takePhotoWithCamera()}}>
-                                                <Text style={{ color: 'blue', marginBottom: 10 }}>Take a Photo</Text>
-                                            </Pressable>
-                                            <Pressable onPress={() => { console.log("Remove Photo"); closePicturePopup(); }}>
-                                                <Text style={{ color: 'blue' }}>Remove Photo</Text>
-                                            </Pressable>
-                                        </View>
-                                    </Pressable>
-                                </Modal>
+                                        <Pressable
+                                            style={{
+                                                flex: 1,
+                                                backgroundColor: 'rgba(0,0,0,0.5)',
+                                                justifyContent: 'center',
+                                                alignItems: 'center'
+                                            }}
+                                            onPress={closePicturePopup} // Close when pressing outside
+                                        >
+                                            <View className="items-center" style={{
+                                                width: 300,
+                                                backgroundColor: 'white',
+                                                borderRadius: 10,
+                                                padding: 20
+                                            }}>
+                                                <Pressable onPress={() => {pickFromGallery()}}>
+                                                    <Text style={{ color: 'blue', marginBottom: 10 }}>Pick from Gallery</Text>
+                                                </Pressable>
+                                                <Pressable onPress={() => {takePhotoWithCamera()}}>
+                                                    <Text style={{ color: 'blue', marginBottom: 10 }}>Take a Photo</Text>
+                                                </Pressable>
+                                                <Pressable onPress={() => { console.log("Remove Photo"); closePicturePopup(); }}>
+                                                    <Text style={{ color: 'blue' }}>Remove Photo</Text>
+                                                </Pressable>
+                                            </View>
+                                        </Pressable>
+                                    </Modal>
+                                </View>
+                            </View>
+                            <View>
+                                <Text className="text-white text-xl font-bold mb-2">
+                                    {name}
+                                </Text>
                             </View>
                         </View>
-                        <View>
-                            <Text className="text-white text-xl font-bold mb-2">
-                                {name}
+                    </View>
+
+                    <View className="items-center mt-10">
+                        <View style={{ width: "90%" }}>
+                            <Text className="text-white text-xl font-bold mb-1">
+                                Weight
                             </Text>
-                        </View>
-                    </View>
-                </View>
 
-                <View className="items-center mt-10">
-                    <View style={{ width: "90%" }}>
-                        <Text className="text-white text-xl font-bold mb-1">
-                            Weight
-                        </Text>
-
-                        <TextInput
-                            className="h-10 border text-black bg-white rounded pl-2"
-                            style={{ width: "100%" }}
-                            value={weight}
-                            onChangeText={setWeight}
-                            placeholderTextColor="#888"
-                        />
-                    </View>
-                </View>
-
-                <View className="items-center mt-4">
-                    <View style={{ width: "90%" }}>
-                        <Text className="text-white text-xl font-bold mb-1">
-                            Height
-                        </Text>
-
-                        <TextInput
-                            className="h-10 border text-black bg-white rounded pl-2"
-                            style={{ width: "100%" }}
-                            value={height}
-                            onChangeText={setHeight}
-                            placeholderTextColor="#888"
-                        />
-                    </View>
-                </View>
-
-                <View className="items-center mt-4">
-                    <View style={{ width: "90%" }}>
-                        <Text className="text-white text-xl font-bold mb-1">
-                            Address Line
-                        </Text>
-
-                        <TextInput
-                            className="h-10 border text-black bg-white rounded pl-2"
-                            style={{ width: "100%" }}
-                            value={addressLine}
-                            onChangeText={setAddressLine}
-                            placeholderTextColor="#888"
-                        />
-                    </View>
-                </View>
-
-                <View className="items-center mt-4">
-                    <View style={{ width: "90%" }} className="flex-row justify-between">
-                        <View className="flex-1 pr-2">
-                            <Text className="text-white text-xl font-bold mb-1">State</Text>
                             <TextInput
                                 className="h-10 border text-black bg-white rounded pl-2"
-                                value={state}
-                                onChangeText={setState}
-                                placeholderTextColor="#888"
-                            />
-                        </View>
-
-                        <View className="flex-1 pl-2">
-                            <Text className="text-white text-xl font-bold mb-1">Post Code</Text>
-                            <TextInput
-                                className="h-10 border text-black bg-white rounded pl-2"
-                                value={postcode}
-                                onChangeText={setPostcode}
+                                style={{ width: "100%" }}
+                                value={weight}
+                                onChangeText={setWeight}
                                 placeholderTextColor="#888"
                             />
                         </View>
                     </View>
-                </View>
 
+                    <View className="items-center mt-4">
+                        <View style={{ width: "90%" }}>
+                            <Text className="text-white text-xl font-bold mb-1">
+                                Height
+                            </Text>
 
-                <View className="items-center mt-4">
-                    <View style={{ width: "90%" }}>
-                        <Text className="text-white text-xl font-bold mb-1">
-                            Emergency Contact Name
-                        </Text>
-
-                        <TextInput
-                            className="h-10 border text-black bg-white rounded pl-2"
-                            style={{ width: "100%" }}
-                            value={emergencyContactName}
-                            onChangeText={setEmergencyContactName}
-                            placeholderTextColor="#888"
-                        />
+                            <TextInput
+                                className="h-10 border text-black bg-white rounded pl-2"
+                                style={{ width: "100%" }}
+                                value={height}
+                                onChangeText={setHeight}
+                                placeholderTextColor="#888"
+                            />
+                        </View>
                     </View>
-                </View>
 
-                <View className="items-center mt-4">
-                    <View style={{ width: "90%" }}>
-                        <Text className="text-white text-xl font-bold mb-1">
-                            Emergency Contact Number
-                        </Text>
+                    <View className="items-center mt-4">
+                        <View style={{ width: "90%" }}>
+                            <Text className="text-white text-xl font-bold mb-1">
+                                Address Line
+                            </Text>
 
-                        <TextInput
-                            className="h-10 border text-black bg-white rounded pl-2"
-                            style={{ width: "100%" }}
-                            value={emergencyContactNumber}
-                            onChangeText={setEmergencyContactNumber}
-                            placeholderTextColor="#888"
-                        />
+                            <TextInput
+                                className="h-10 border text-black bg-white rounded pl-2"
+                                style={{ width: "100%" }}
+                                value={addressLine}
+                                onChangeText={setAddressLine}
+                                placeholderTextColor="#888"
+                            />
+                        </View>
                     </View>
-                </View>
 
-                <View className="items-center mt-4">
-                    <TouchableOpacity className="bg-[#1E88E5] p-4 rounded-lg items-center mt-2" style={{ width: "40%" }} onPress={handleSubmit}>
-                        <Text className="text-white font-bold">Save Changes</Text>
-                    </TouchableOpacity>
-                </View>
+                    <View className="items-center mt-4">
+                        <View style={{ width: "90%" }} className="flex-row justify-between">
+                            <View className="flex-1 pr-2">
+                                <Text className="text-white text-xl font-bold mb-1">State</Text>
+                                <TextInput
+                                    className="h-10 border text-black bg-white rounded pl-2"
+                                    value={state}
+                                    onChangeText={setState}
+                                    placeholderTextColor="#888"
+                                />
+                            </View>
 
-                <View className="items-center mt-4">
-                    <TouchableOpacity className="bg-[#CE0303B8] p-4 rounded-lg items-center mt-2 mb-10" onPress={handleSignout} style={{ width: "40%" }}>
-                        <Text className="text-white font-bold">Log Out</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+                            <View className="flex-1 pl-2">
+                                <Text className="text-white text-xl font-bold mb-1">Post Code</Text>
+                                <TextInput
+                                    className="h-10 border text-black bg-white rounded pl-2"
+                                    value={postcode}
+                                    onChangeText={setPostcode}
+                                    placeholderTextColor="#888"
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+
+                    <View className="items-center mt-4">
+                        <View style={{ width: "90%" }}>
+                            <Text className="text-white text-xl font-bold mb-1">
+                                Emergency Contact Name
+                            </Text>
+
+                            <TextInput
+                                className="h-10 border text-black bg-white rounded pl-2"
+                                style={{ width: "100%" }}
+                                value={emergencyContactName}
+                                onChangeText={setEmergencyContactName}
+                                placeholderTextColor="#888"
+                            />
+                        </View>
+                    </View>
+
+                    <View className="items-center mt-4">
+                        <View style={{ width: "90%" }}>
+                            <Text className="text-white text-xl font-bold mb-1">
+                                Emergency Contact Number
+                            </Text>
+
+                            <TextInput
+                                className="h-10 border text-black bg-white rounded pl-2"
+                                style={{ width: "100%" }}
+                                value={emergencyContactNumber}
+                                onChangeText={setEmergencyContactNumber}
+                                placeholderTextColor="#888"
+                            />
+                        </View>
+                    </View>
+
+                    <View className="items-center mt-4">
+                        <TouchableOpacity className="bg-[#1E88E5] p-4 rounded-lg items-center mt-2" style={{ width: "40%" }} onPress={handleSubmit}>
+                            <Text className="text-white font-bold">Save Changes</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View className="items-center mt-4">
+                        <TouchableOpacity className="bg-[#CE0303B8] p-4 rounded-lg items-center mt-2 mb-10" onPress={handleSignout} style={{ width: "40%" }}>
+                            <Text className="text-white font-bold">Log Out</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }

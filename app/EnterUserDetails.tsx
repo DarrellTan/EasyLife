@@ -1,4 +1,4 @@
-import {Pressable, Text, TextInput, View, Alert} from "react-native";
+import {Pressable, Text, TextInput, View, Alert, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView} from "react-native";
 import {useTheme} from "@/context/ThemeContext";
 import {useEffect, useState} from "react";
 import {onAuthStateChanged} from "firebase/auth";
@@ -126,125 +126,128 @@ export default function EnterUserDetails() {
     };
 
     return (
-        <View className="flex-1 justify-center" style={{ backgroundColor: theme.background }}>
-            <View className="flex-1 justify-center px-4" style={{ backgroundColor: theme.background }}>
-                <View className="items-center">
-                    <Text className="text-4xl font-bold mb-2" style={{ color: theme.text }}>Enter User Details</Text>
-                    <TextInput
-                        className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
-                        value={fullName}
-                        onChangeText={setFullName}
-                        placeholder="Full Name"
-                        placeholderTextColor="#888"
-                    />
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+            <KeyboardAvoidingView
+                style={{ flex: 1, backgroundColor: theme.background }}
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0} // adjust this as needed
+            >
+                <ScrollView className="flex-1" style={{ backgroundColor: theme.background }} contentContainerStyle={{ justifyContent: 'center', flexGrow: 1 }}>
+                    <View className="flex-1 justify-center px-4" style={{ backgroundColor: theme.background }}>
+                        <View className="items-center">
+                            <Text className="text-4xl font-bold mb-2" style={{ color: theme.text }}>Enter User Details</Text>
+                            <TextInput
+                                className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
+                                value={fullName}
+                                onChangeText={setFullName}
+                                placeholder="Full Name"
+                                placeholderTextColor="#888"
+                            />
 
-                    <TextInput
-                        className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
-                        value={icNumber}
-                        onChangeText={setIcNumber}
-                        placeholder="IC Number"
-                        placeholderTextColor="#888"
-                    />
+                            <TextInput
+                                className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
+                                value={icNumber}
+                                onChangeText={setIcNumber}
+                                placeholder="IC Number"
+                                placeholderTextColor="#888"
+                            />
 
-                    <TextInput
-                        className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
-                        value={address}
-                        onChangeText={setAddress}
-                        placeholder="Address Line"
-                        placeholderTextColor="#888"
-                    />
+                            <TextInput
+                                className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
+                                value={address}
+                                onChangeText={setAddress}
+                                placeholder="Address Line"
+                                placeholderTextColor="#888"
+                            />
 
-                    <View className="flex-row">
-                        <TextInput
-                            className="h-10 my-3 mr-12 border px-2.5 text-black bg-white w-full flex-1 rounded"
-                            value={state}
-                            onChangeText={setState}
-                            placeholder="State"
-                            placeholderTextColor="#888"
-                        />
+                            <View className="flex-row">
+                                <TextInput
+                                    className="h-10 my-3 mr-12 border px-2.5 text-black bg-white w-full flex-1 rounded"
+                                    value={state}
+                                    onChangeText={setState}
+                                    placeholder="State"
+                                    placeholderTextColor="#888"
+                                />
 
-                        <TextInput
-                            className="h-10 my-3 border px-2.5 text-black bg-white w-full flex-1 rounded"
-                            value={postCode}
-                            keyboardType={"numeric"}
-                            onChangeText={setPostCode}
-                            placeholder="Post Code"
-                            placeholderTextColor="#888"
-                        />
-                    </View>
-
-                    <TextInput
-                        className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
-                        value={phone}
-                        onChangeText={setPhone}
-                        placeholder="Phone Number"
-                        placeholderTextColor="#888"
-                    />
-
-                    <View className="flex-row justify-center items-center">
-                        {/* Gender Label */}
-                        <Text className="text-l font-bold mr-3" style={{color : theme.text}}>Gender:</Text>
-
-                        {/* Male Radio Button */}
-                        <View style={{ flexDirection: "row", alignItems: "center", marginRight: 15 }}>
-                            <View
-                                style={{
-                                    borderWidth: 1, // Smaller border width
-                                    borderColor: "#3498db", // Border color
-                                    borderRadius: 50, // To make the border rounded
-                                    padding: 2, // Reduced padding to make the button fit smaller
-                                    marginRight: 5, // Added space between the radio button and the text
-                                }}
-                            >
-                                <RadioButton
-                                    value="Male"
-                                    status={gender === "Male" ? "checked" : "unchecked"}
-                                    onPress={() => handleGenderChange("Male")}
-                                    color="#3498db" // Custom color for the checked radio button
-                                    uncheckedColor="#3498db" // Color for the unchecked state border
+                                <TextInput
+                                    className="h-10 my-3 border px-2.5 text-black bg-white w-full flex-1 rounded"
+                                    value={postCode}
+                                    keyboardType={"numeric"}
+                                    onChangeText={setPostCode}
+                                    placeholder="Post Code"
+                                    placeholderTextColor="#888"
                                 />
                             </View>
-                            <Text style={{color : theme.text}}>Male</Text>
+
+                            <TextInput
+                                className="h-10 my-3 border px-2.5 text-black bg-white w-full rounded"
+                                value={phone}
+                                onChangeText={setPhone}
+                                placeholder="Phone Number"
+                                placeholderTextColor="#888"
+                            />
+
+                            <View className="flex-row justify-center items-center">
+                                {/* Gender Label */}
+                                <Text className="text-l font-bold mr-3" style={{color : theme.text}}>Gender:</Text>
+
+                                {/* Male Radio Button */}
+                                <View style={{ flexDirection: "row", alignItems: "center", marginRight: 15 }}>
+                                    <View
+                                        style={{
+                                            borderWidth: 1, // Smaller border width
+                                            borderColor: "#3498db", // Border color
+                                            borderRadius: 50, // To make the border rounded
+                                            padding: 2, // Reduced padding to make the button fit smaller
+                                            marginRight: 5, // Added space between the radio button and the text
+                                        }}
+                                    >
+                                        <RadioButton
+                                            value="Male"
+                                            status={gender === "Male" ? "checked" : "unchecked"}
+                                            onPress={() => handleGenderChange("Male")}
+                                            color="#3498db" // Custom color for the checked radio button
+                                            uncheckedColor="#3498db" // Color for the unchecked state border
+                                        />
+                                    </View>
+                                    <Text style={{color : theme.text}}>Male</Text>
+                                </View>
+
+                                {/* Female Radio Button */}
+                                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                    <View
+                                        style={{
+                                            borderWidth: 1, // Same smaller border width
+                                            borderColor: "#3498db",
+                                            borderRadius: 50,
+                                            padding: 2, // Smaller padding to match size
+                                            marginRight: 5, // Space between radio button and text
+                                        }}
+                                    >
+                                        <RadioButton
+                                            value="Female"
+                                            status={gender === "Female" ? "checked" : "unchecked"}
+                                            onPress={() => handleGenderChange("Female")}
+                                            color="#3498db"
+                                            uncheckedColor="#3498db"
+                                        />
+                                    </View>
+                                    <Text style={{color : theme.text}}>Female</Text>
+                                </View>
+                            </View>
+
+
                         </View>
 
-                        {/* Female Radio Button */}
-                        <View style={{ flexDirection: "row", alignItems: "center" }}>
-                            <View
-                                style={{
-                                    borderWidth: 1, // Same smaller border width
-                                    borderColor: "#3498db",
-                                    borderRadius: 50,
-                                    padding: 2, // Smaller padding to match size
-                                    marginRight: 5, // Space between radio button and text
-                                }}
-                            >
-                                <RadioButton
-                                    value="Female"
-                                    status={gender === "Female" ? "checked" : "unchecked"}
-                                    onPress={() => handleGenderChange("Female")}
-                                    color="#3498db"
-                                    uncheckedColor="#3498db"
-                                />
-                            </View>
-                            <Text style={{color : theme.text}}>Female</Text>
+
+                        <View className="flex-row justify-center items-center">
+                            <Pressable onPress={handleSubmit} className="bg-blue-600 px-4 py-2 rounded mt-2">
+                                <Text className="text-white font-semibold">Submit</Text>
+                            </Pressable>
                         </View>
                     </View>
-
-
-                </View>
-
-
-                <View className="flex-row justify-center items-center">
-                    <Pressable onPress={handleSubmit} className="bg-blue-600 px-4 py-2 rounded mt-2">
-                        <Text className="text-white font-semibold">Submit</Text>
-                    </Pressable>
-                    <Pressable onPress={() => router.push("/ChooseProfilePicture")} className="bg-blue-600 px-4 py-2 rounded mt-2">
-                        <Text className="text-white font-semibold">Skip</Text>
-                    </Pressable>
-                </View>
-
-            </View>
-        </View>
-
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
