@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import MapView, { PROVIDER_DEFAULT, Region, Polyline } from 'react-native-maps';
-import { onSnapshot, collection, query, where } from 'firebase/firestore';
+import { onSnapshot, doc } from 'firebase/firestore';
 import { auth, db, rtdb } from '@/FirebaseConfig';
 import * as Location from 'expo-location';
 import { onAuthStateChanged } from 'firebase/auth';
 // @ts-ignore
 import polyline from '@mapbox/polyline';
-import CarMarker from './CarMarker';
+import HospitalMarker from './HospitalMarker';
+import PoliceMarker from './PoliceMarker';
+import FireMarker from './FireMarker';
 import { ref, onValue } from 'firebase/database';
 import { useActiveReportContext } from '@/context/ActiveReportContext';
-
-
 
 const Map = () => {
     const [userId, setUserId] = useState<string | null>(null);
@@ -24,100 +24,198 @@ const Map = () => {
     const [policeRouteCoords, setPoliceRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
     const [fireRouteCoords, setFireRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
 
-    const [reportId, setReportId] = useState<string | null>(null);
     const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_API_KEY;
-    const [activeReportId, setActiveReport] = useActiveReportContext();
+    const [activeReportIdFromContext] = useActiveReportContext(); // Renamed to clarify origin
 
-
+    // Effect for user authentication state (unchanged)
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
                 setUserId(firebaseUser.uid);
+            } else {
+                setUserId(null);
             }
         });
-
         return () => unsubscribe();
     }, []);
 
+    // Effect for initial current location (unchanged)
     useEffect(() => {
         const getCurrentLocation = async () => {
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                console.log('Permission to access location was denied');
+                console.warn('Permission to access location was denied');
                 return;
             }
-
-            const location = await Location.getCurrentPositionAsync({
-                accuracy: Location.Accuracy.High,
-            });
-
-            const { latitude, longitude } = location.coords;
-
-            setRegion({
-                latitude,
-                longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-            });
+            try {
+                const location = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.High,
+                });
+                const { latitude, longitude } = location.coords;
+                setRegion({
+                    latitude,
+                    longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                });
+            } catch (error) {
+                console.error("Error getting current location:", error);
+            }
         };
-
         getCurrentLocation();
     }, []);
 
+    // Main effect for active report and real-time listeners
     useEffect(() => {
-        if (!activeReportId) return;
-        console.log("listener activated");
+        // Force activeReportId to be a string
+        const activeReportId = activeReportIdFromContext != null ? String(activeReportIdFromContext) : null;
 
-        const setupListener = (
-            path: string,
-            setPosition: (pos: { latitude: number; longitude: number }) => void,
-            setRoute: (coords: { latitude: number; longitude: number }[]) => void
-        ) => {
-            const refPath = ref(rtdb, `reports/${activeReportId}/${path}`);
-            console.log("refPath called");
-            const unsubscribe = onValue(refPath, async (snapshot) => {
-                const data = snapshot.val();
-                if (data?.latitude && data?.longitude) {
-                    const operatorCoords = {
-                        latitude: data.latitude,
-                        longitude: data.longitude,
-                    };
+        if (!activeReportId || activeReportId.trim() === '') { // Also check for empty string after coercion
+            console.log("Map Component: Coerced activeReportId is null or empty, returning. Value:", activeReportIdFromContext);
+            // Clear any previous map data when no active report
+            setCarPosition(null);
+            setPolicePosition(null);
+            setFirePosition(null);
+            setHospitalRouteCoords([]);
+            setPoliceRouteCoords([]);
+            setFireRouteCoords([]);
+            return;
+        }
 
+        console.log("Map Component: Listener activated for activeReportId:", activeReportId);
+
+        let unsubFirestore: (() => void) | null = null;
+        let unsubHospitalRTDB: (() => void) | null = null;
+        let unsubPoliceRTDB: (() => void) | null = null;
+        let unsubFireRTDB: (() => void) | null = null;
+
+        const reportsRef = doc(db, "reports", activeReportId); // Use the coerced string here
+
+        unsubFirestore = onSnapshot(reportsRef, async (reportDoc) => {
+            console.log("Map Component: Firestore onSnapshot callback fired.");
+
+            if (unsubHospitalRTDB) { unsubHospitalRTDB(); unsubHospitalRTDB = null; }
+            if (unsubPoliceRTDB) { unsubPoliceRTDB(); unsubPoliceRTDB = null; }
+            if (unsubFireRTDB) { unsubFireRTDB(); unsubFireRTDB = null; }
+
+            if (!reportDoc.exists()) {
+                console.warn("Map Component: No such report with ID or report deleted:", activeReportId);
+                setCarPosition(null);
+                setPolicePosition(null);
+                setFirePosition(null);
+                setHospitalRouteCoords([]);
+                setPoliceRouteCoords([]);
+                setFireRouteCoords([]);
+                return;
+            }
+
+            const reportData = reportDoc.data();
+            console.log("Map Component: Initial/Updated report data from Firestore:", reportData);
+
+            let userCoords: { latitude: number; longitude: number };
+
+            try {
+                if (reportData.reportFor === "Myself") {
                     const location = await Location.getCurrentPositionAsync({
                         accuracy: Location.Accuracy.High,
                     });
-
-                    const userCoords = {
+                    userCoords = {
                         latitude: location.coords.latitude,
                         longitude: location.coords.longitude,
                     };
-
-                    setPosition(operatorCoords);
-                    const route = await getRoute(userCoords, operatorCoords);
-                    setRoute(route);
+                    console.log("Map Component: UserCoords (Myself):", userCoords);
+                } else if (reportData.reportFor === "Others" && reportData.location && typeof reportData.location.latitude === 'number' && typeof reportData.location.longitude === 'number') {
+                    userCoords = {
+                        latitude: reportData.location.latitude,
+                        longitude: reportData.location.longitude,
+                    };
+                    console.log("Map Component: UserCoords (Others):", userCoords);
+                } else {
+                    console.warn("Map Component: Invalid report data location or reportFor type.", reportData);
+                    setCarPosition(null); setPolicePosition(null); setFirePosition(null);
+                    setHospitalRouteCoords([]); setPoliceRouteCoords([]); setFireRouteCoords([]);
+                    return;
                 }
-            });
+            } catch (locationError) {
+                console.error("Map Component: Error getting user location for routing:", locationError);
+                setCarPosition(null); setPolicePosition(null); setFirePosition(null);
+                setHospitalRouteCoords([]); setPoliceRouteCoords([]); setFireRouteCoords([]);
+                return;
+            }
 
-            return unsubscribe; // for cleanup
-        };
+            const setupRealtimeListener = (
+                path: string,
+                setPosition: (pos: { latitude: number; longitude: number } | null) => void,
+                setRoute: (coords: { latitude: number; longitude: number }[]) => void
+            ) => {
+                if (!path || typeof path !== 'string') {
+                    console.error("Map Component: Invalid path for RTDB listener:", path);
+                    return () => {};
+                }
+                const refPath = ref(rtdb, `reports/${activeReportId}/${path}`); // Use the coerced string here
+                console.log(`Map Component: Setting up Realtime DB listener for path: ${refPath.toString()}`);
 
-        const unsubHospital = setupListener('hospitalGeolocation', setCarPosition, setHospitalRouteCoords);
-        const unsubPolice = setupListener('policeGeolocation', setPolicePosition, setPoliceRouteCoords);
-        const unsubFire = setupListener('fireGeolocation', setFirePosition, setFireRouteCoords);
-        console.log(unsubFire);
+                return onValue(refPath, async (snapshot) => {
+                    const data = snapshot.val();
+                    console.log(`Map Component: Realtime DB data for ${path}:`, data);
+
+                    if (typeof data?.latitude === 'number' && typeof data?.longitude === 'number') {
+                        const operatorCoords = {
+                            latitude: data.latitude,
+                            longitude: data.longitude,
+                        };
+                        setPosition(operatorCoords);
+                        if (userCoords.latitude !== undefined && userCoords.longitude !== undefined) {
+                            const route = await getRoute(operatorCoords, userCoords);
+                            setRoute(route);
+                        } else {
+                            console.warn("Map Component: userCoords are invalid for route calculation.");
+                            setRoute([]);
+                        }
+                    } else {
+                        console.warn(`Map Component: Invalid geolocation data for ${path}, clearing marker/route. Data:`, data);
+                        setPosition(null);
+                        setRoute([]);
+                    }
+                }, (error) => {
+                    console.error(`Map Component: Error with Realtime DB listener for ${path}:`, error);
+                    setPosition(null);
+                    setRoute([]);
+                });
+            };
+
+            unsubHospitalRTDB = setupRealtimeListener('hospitalGeolocation', setCarPosition, setHospitalRouteCoords);
+            unsubPoliceRTDB = setupRealtimeListener('policeGeolocation', setPolicePosition, setPoliceRouteCoords);
+            unsubFireRTDB = setupRealtimeListener('fireGeolocation', setFirePosition, setFireRouteCoords);
+
+        }, (error) => {
+            console.error("Map Component: Error with Firestore onSnapshot for report:", error);
+            setCarPosition(null);
+            setPolicePosition(null);
+            setFirePosition(null);
+            setHospitalRouteCoords([]);
+            setPoliceRouteCoords([]);
+            setFireRouteCoords([]);
+        });
 
         return () => {
-            unsubHospital?.();
-            unsubPolice?.();
-            unsubFire?.();
+            console.log("Map Component: Cleaning up all listeners for activeReportId:", activeReportId);
+            if (unsubFirestore) unsubFirestore();
+            if (unsubHospitalRTDB) unsubHospitalRTDB();
+            if (unsubPoliceRTDB) unsubPoliceRTDB();
+            if (unsubFireRTDB) unsubFireRTDB();
         };
-    }, [activeReportId]);
-
+    }, [activeReportIdFromContext]); // Dependency is the raw value from context
 
     const getRoute = async (
         start: { latitude: number; longitude: number },
         end: { latitude: number; longitude: number }
     ): Promise<{ latitude: number; longitude: number }[]> => {
+        if (!start || !end || typeof start.latitude !== 'number' || typeof start.longitude !== 'number' || typeof end.latitude !== 'number' || typeof end.longitude !== 'number') {
+            console.warn("Map Component: Invalid start or end coordinates for getRoute. Start:", start, "End:", end);
+            return [];
+        }
+
         try {
             const origin = `${start.latitude},${start.longitude}`;
             const destination = `${end.latitude},${end.longitude}`;
@@ -126,19 +224,21 @@ const Map = () => {
                 `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&key=${GOOGLE_API_KEY}`
             );
             const data = await response.json();
+            console.log("Map Component: Google Directions API response:", data);
 
-            if (data.routes.length) {
-                const points = polyline.decode(data.routes[0].overview_polyline.points);
+            if (data.routes && data.routes.length > 0 && data.routes[0].overview_polyline && typeof data.routes[0].overview_polyline.points === 'string') {
+                const pointsString = data.routes[0].overview_polyline.points;
+                const points = polyline.decode(pointsString);
                 return points.map(([lat, lng]: [number, number]) => ({
                     latitude: lat,
                     longitude: lng,
                 }));
             } else {
-                console.warn('No route found');
+                console.warn('Map Component: No route found or missing/invalid polyline data in API response.', data);
                 return [];
             }
         } catch (error) {
-            console.error('Error fetching route:', error);
+            console.error('Map Component: Error fetching route from Google Directions API:', error);
             return [];
         }
     };
@@ -151,27 +251,27 @@ const Map = () => {
             style={styles.map}
             region={region}
             showsUserLocation
+            onRegionChangeComplete={setRegion}
         >
             {carPosition && (
-                <CarMarker
+                <HospitalMarker
                     latitude={carPosition.latitude}
                     longitude={carPosition.longitude}
                 />
             )}
             {policePosition && (
-                <CarMarker
+                <PoliceMarker
                     latitude={policePosition.latitude}
                     longitude={policePosition.longitude}
                 />
             )}
             {firePosition && (
-                <CarMarker
+                <FireMarker
                     latitude={firePosition.latitude}
                     longitude={firePosition.longitude}
                 />
             )}
 
-            {/* ROUTES */}
             {hospitalRouteCoords.length > 0 && (
                 <Polyline
                     coordinates={hospitalRouteCoords}

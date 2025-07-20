@@ -452,7 +452,7 @@ export default function Home() {
                         querySnapshot.forEach((doc) => {
                             const report = { id: doc.id, ...doc.data() };
                             if (report.status === "Active") {
-                                setActiveReport(report.id);
+                                setActiveReport(String(report.id));
                             }
                         });
                     } catch (error) {
@@ -544,6 +544,7 @@ export default function Home() {
                         longitude: region.longitude,
                     },
                 reportFor: reportFor,
+                locationDetails: locationDetails,
                 classification: prediction.length > 0 ? prediction : ["unknown"], // autio fill in the prediction
                 transcribedText: transcription || "N/A",  // autio fill in the transcription
                 status: "Active",
@@ -727,7 +728,7 @@ export default function Home() {
                                 console.log("Released");
                                 setTimeout(() => {
                                     stopRecording();
-                                }, 1000);
+                                }, 3000);
                             }}
                             style={{
                                 marginTop: 12,

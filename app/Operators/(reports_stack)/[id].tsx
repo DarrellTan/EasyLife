@@ -28,6 +28,8 @@ export default function DetailedReport() {
     const [latitude, setLatitude] = useState();
     const [longitude, setLongitude] = useState();
     const [location, setLocation] = useState();
+    const [locationDetails, setLocationDetails] = useState("");
+    const [reportFor, setReportFor] = useState("");
     const [userProfile, setUserProfile] = useState(null);
     const [userId, setUserId] = useState();
     const [operatorName, setOperatorName] = useState("N/A");
@@ -198,6 +200,10 @@ export default function DetailedReport() {
                 setEmergencyService(reportData.assignedEmergencyService);
                 setAssignments(reportData.assignments);
                 console.log("assignments = " + assignments);
+                if (reportData.reportFor == "Others") {
+                    setReportFor("Others");
+                    setLocationDetails(reportData.locationDetails);
+                }
 
                 // 🔽 Fetch operator profile after setting operatorId
                 if (reportData.userId) {
@@ -275,12 +281,23 @@ export default function DetailedReport() {
                                 : "Invalid Date"
                             }
                         </Text>
+
+                        <Text className="font-bold text-2xl text-white"></Text>
                     </View>
 
-                    <View className="flex-row items-center self-center mt-4" style={{ width: "90%"}}>
+                    <View className="flex-row items-center self-center" style={{ width: "90%"}}>
                         <LocationkIcon size={20} color={theme.text} />
                         <Text className="ml-2 font-bold text-xl text-white">{location}</Text>
                     </View>
+
+
+                        {reportFor === "Others" && (
+                            <>
+                                <View  className="self-center mt-4" style={{ width: "90%"}}>
+                                    <Text className="font-bold text-xl text-white">Location Details: {locationDetails}</Text>
+                                </View>
+                            </>
+                        )}
 
                     <View className="self-center mt-4" style={{ width: "90%", height: 1, backgroundColor: '#888' }} />
 

@@ -61,10 +61,13 @@ const Map = () => {
     useEffect(() => {
         if (!userId) return;
 
-
         const reportsRef = collection(db, "reports");
-        const q = query(reportsRef, where("assignmentOperatorIds", "array-contains", userId));
 
+        const q = query(
+            reportsRef,
+            where("assignmentOperatorIds", "array-contains", userId),
+            where("status", "==", "Active")
+        );
 
         console.log("Query active");
 
@@ -74,41 +77,69 @@ const Map = () => {
             if (hasReport) {
                 const reportDoc = querySnapshot.docs[0];
                 const id = reportDoc.id;
-                console.log(id);
                 setReportId(id);
 
-                // Listen for operator location from Realtime DB
-                const operatorRef = ref(rtdb, `reports/${id}/userGeolocation`);
-                onValue(operatorRef, async (snapshot) => {
-                    const data = snapshot.val();
-                    console.log(data);
-                    if (data?.latitude && data?.longitude) {
-                        const operatorCoords = {
-                            latitude: data.latitude,
-                            longitude: data.longitude,
-                        };
-                        console.log("operator cords" + operatorCoords.latitude);
+                const reportData = reportDoc.data();
+                const reportFor = reportData.reportFor;
 
-                        const location = await Location.getCurrentPositionAsync({
-                            accuracy: Location.Accuracy.High,
+                if (reportFor === "Others" && reportData.location?.latitude && reportData.location?.longitude) {
+                    const staticCoords = {
+                        latitude: reportData.location.latitude,
+                        longitude: reportData.location.longitude,
+                    };
+
+                    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+                        .then((location) => {
+                            const userCoords = {
+                                latitude: location.coords.latitude,
+                                longitude: location.coords.longitude,
+                            };
+
+                            setCarPosition(staticCoords);
+                            getRoute(userCoords, staticCoords);
+                        })
+                        .catch((error) => {
+                            console.error("Error getting user location:", error);
                         });
 
-                        const userCoords = {
-                            latitude: location.coords.latitude,
-                            longitude: location.coords.longitude,
-                        };
+                } else {
+                    // Listen for operator location from Realtime DB
+                    const operatorRef = ref(rtdb, `reports/${id}/userGeolocation`);
+                    onValue(operatorRef, async (snapshot) => {
+                        const data = snapshot.val();
 
-                        setCarPosition(operatorCoords); // Set operator position for marker
-                        await getRoute(userCoords, operatorCoords); // Draw route
-                    }
-                });
+                        if (data?.latitude && data?.longitude) {
+                            const operatorCoords = {
+                                latitude: data.latitude,
+                                longitude: data.longitude,
+                            };
+
+                            try {
+                                const location = await Location.getCurrentPositionAsync({
+                                    accuracy: Location.Accuracy.High,
+                                });
+
+                                const userCoords = {
+                                    latitude: location.coords.latitude,
+                                    longitude: location.coords.longitude,
+                                };
+
+                                setCarPosition(operatorCoords);
+                                await getRoute(userCoords, operatorCoords);
+                            } catch (error) {
+                                console.error("Error getting user location:", error);
+                            }
+                        }
+                    });
+                }
             }
         }, (error) => {
-            console.error('Error listening for active report:', error);
+            console.error("Error listening for active report:", error);
         });
 
         return () => unsubscribe();
     }, [userId]);
+
 
     const getRoute = async (
         start: { latitude: number; longitude: number },
